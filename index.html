@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Tickets PRO</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="card-container">
+    
+    <nav class="top-toolbar">
+        <button class="tool-btn" title="Plantillas">📝 Plantillas</button>
+        <button class="tool-btn" id="btn_export" title="Descargar reporte Excel/CSV">📥 Exportar</button>
+        <button class="tool-btn" id="btn_clear_data" title="Borrar Historial" style="color: #ef4444;">🗑️ Borrar</button>
+        <button class="tool-btn" id="btn_import_data" title="Subir datos de otra PC">📤</button>
+        <input type="file" id="file_selector" style="display: none;" accept=".json">
+    </nav>
+
+    <h2 style="text-align: center; color: #1e3a8a; margin-bottom: 25px; margin-top: 10px;">Nuevo Ticket</h2>
+
+    <div class="row">
+        <div class="floating-group">
+            <input type="text" id="call_id" placeholder=" " autocomplete="off">
+            <label for="call_id">ID Llamada / Abonado</label>
+        </div>
+        <div class="floating-group">
+            <input type="text" id="customer_name" placeholder=" " autocomplete="off">
+            <label for="customer_name">Nombre del Cliente</label>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="floating-group">
+            <input type="number" id="customer_doc" placeholder=" " autocomplete="off">
+            <label for="customer_doc">Documento</label>
+        </div>
+        <div class="floating-group">
+            <input type="text" id="prueba_smnet" placeholder=" " autocomplete="off">
+            <label for="prueba_smnet">SMNET</label>
+        </div>
+        <div class="floating-group">
+            <input type="tel" id="customer_phone" placeholder=" " autocomplete="off">
+            <label for="customer_phone">Teléfono</label>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="floating-group">
+            <input type="text" id="tech_input" list="tech_options" placeholder=" " autocomplete="off">
+            <label for="tech_input">Tecnología</label>
+            <datalist id="tech_options"></datalist> 
+        </div>
+
+        <div class="floating-group">
+            <input type="text" id="prod_input" list="prod_options" placeholder=" " autocomplete="off">
+            <label for="prod_input">Producto</label>
+            <datalist id="prod_options"></datalist> 
+        </div>
+
+        <div class="floating-group wide">
+            <input type="text" id="fail_input" list="fail_options" placeholder=" " autocomplete="off">
+            <label for="fail_input">Falla Reportada</label>
+            <datalist id="fail_options"></datalist> 
+        </div>
+    </div>
+
+    <div class="floating-group">
+        <textarea id="observaciones" placeholder=" " spellcheck="true"></textarea>
+        <label for="observaciones">Observaciones</label>
+    </div>
+
+    <div class="actions">
+        <button id="btn_copy">Copiar Datos</button>
+        <button id="btn_reset">Reiniciar / Guardar</button>
+    </div>
+
+    <div class="b2b-section">
+        <div class="b2b-header">
+            <p class="section-title">¿Es Caso B2B?</p>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="b2b_option" value="no" checked> No
+                </label>
+                <label>
+                    <input type="radio" name="b2b_option" value="si"> Si
+                </label>
+            </div>
+        </div>
+
+        <div id="b2b_panel" class="hidden">
+            <div class="floating-group">
+                <input type="text" id="b2b_contact" placeholder=" " autocomplete="off">
+                <label for="b2b_contact">Nombre quien atiende</label>
+            </div>
+            
+            <div class="row">
+                <div class="floating-group">
+                    <input type="text" id="b2b_days" list="days_options" placeholder=" " autocomplete="off">
+                    <label for="b2b_days">Días Atención</label>
+                    <datalist id="days_options">
+                        <option value="Lunes a Viernes">
+                        <option value="Lunes a Sábado">
+                        <option value="Lunes a Domingo">
+                    </datalist>
+                </div>
+                <div class="floating-group">
+                    <input type="text" id="b2b_schedule" placeholder=" " autocomplete="off">
+                    <label for="b2b_schedule">Horario (Ej: 8am-5pm)</label>
+                </div>
+            </div>
+
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="b2b_permission">
+                <label for="b2b_permission">Requiere Permiso Especial</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <span class="stat-label">AHT Diario</span>
+            <span class="stat-value" id="aht_daily_display">0s / 00:00</span>
+            <span class="stat-sub">Promedio Hoy</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">AHT Mensual</span>
+            <span class="stat-value" id="aht_monthly_display">0s / 00:00</span>
+            <span class="stat-sub">Acumulado</span>
+        </div>
+    </div>
+
+    <div class="key-bar">
+        <span class="key-label">Claves Rápidas:</span>
+        <div class="key-buttons">
+            <button class="btn-key" id="btn_key_elite">Elite</button>
+            <button class="btn-key" id="btn_key_fenix">Fenix</button>
+            <button class="btn-key" id="btn_key_pwd">PWD</button>
+            <button class="btn-key mod" id="btn_key_mod">Modificar</button>
+        </div>
+    </div>
+
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
