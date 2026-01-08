@@ -1,10 +1,12 @@
 /* ==========================================================================
-   ARCHIVO: js/app.js
-   PROPÓSITO: Lógica del Formulario Principal (Index)
-   DEPENDENCIAS: Requiere que 'js/db.js' esté cargado previamente.
+   js/app.js - CONTROLADOR DEL FORMULARIO PRINCIPAL
+   IMPORTANTE: NO pegues aquí la clase GestorDB. 
+   Esa clase ya debe estar en 'js/db.js'.
    ========================================================================== */
 
-/* 1. CONFIGURACIÓN Y DATOS ESTÁTICOS */
+/* =========================================
+   1. CONFIGURACIÓN Y DATOS
+   ========================================= */
 const opcionesTiposervicio = {
     'HFC': ['Internet', 'Telefonía', 'TV_Digital', 'One_TV_2.0'],
     'GPON': ['Internet', 'IPTV', 'Telefonía', 'One_TV_2.0'],
@@ -20,7 +22,9 @@ const opcionesNaturaleza = {
     'One_TV_2.0': ['Sin señal', 'DRM falló', 'Imagen congelada', 'Error de descarga', 'Comando de voz', 'App One TV falla']
 };
 
-/* 2. VARIABLES DE ESTADO */
+/* =========================================
+   2. VARIABLES DE ESTADO
+   ========================================= */
 let horaInicioLlamada = null; 
 let timerRetoma = null;
 let retomaStartTime = null;
@@ -33,7 +37,7 @@ let misClaves = {
     'btn_key_pwd': 'AdminPassword'
 };
 
-/* 3. ELEMENTOS DEL DOM */
+// Elementos DOM Principales
 const callIdInput = document.getElementById('call_id');
 const techInput = document.getElementById('tech_input');
 const prodInput = document.getElementById('prod_input');
@@ -42,21 +46,29 @@ const obsTextarea = document.getElementById('observaciones');
 const techList = document.getElementById('tech_options');
 const prodList = document.getElementById('prod_options');
 const failList = document.getElementById('fail_options');
+
+// Elementos B2B
 const radiosB2B = document.querySelectorAll('input[name="b2b_option"]');
 const panelB2B = document.getElementById('b2b_panel');
+
+// Elementos Timer
 const displayTotal = document.getElementById('display_total');
 const displayCountdown = document.getElementById('display_countdown');
 const timerPanel = document.getElementById('timer_panel');
 
-/* 4. NAVEGACIÓN (BOTÓN DATA) */
+/* =========================================
+   3. NAVEGACIÓN (BOTÓN DATA)
+   ========================================= */
 const btnData = document.getElementById('btn_data');
 if (btnData) {
     btnData.addEventListener('click', () => {
-        window.location.href = 'data.html'; // Ir al Dashboard
+        window.location.href = 'data.html';
     });
 }
 
-/* 5. FUNCIONES UTILITARIAS */
+/* =========================================
+   4. FUNCIONES DE UTILIDAD
+   ========================================= */
 function llenarDatalist(datalistElement, arrayOpciones) {
     if (!datalistElement) return;
     datalistElement.innerHTML = ''; 
@@ -81,22 +93,37 @@ function formatoMMSS(segundos) {
     return `${m}:${s}`;
 }
 
+// --- CORRECCIÓN SONIDO: Contexto único para evitar superposiciones ---
+let audioCtx = null;
 function sonarAlertaRetoma() {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const audioCtx = new AudioContext();
+    if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+    }
+    if (!audioCtx) return;
+
+    // Si el contexto estaba suspendido (común en navegadores modernos), reanudarlo
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
+
     oscillator.type = 'sine'; 
     oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+    
+    // Configuración de volumen suave
     gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
     gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.1); 
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
+
     oscillator.start();
     oscillator.stop(audioCtx.currentTime + 1.5);
-    setTimeout(() => audioCtx.close(), 1600);
+    // Nota: Ya no cerramos el contexto (audioCtx.close) para poder reutilizarlo
 }
 
 // Auto-expandir Textarea
@@ -109,10 +136,11 @@ if (obsTextarea) {
     obsTextarea.addEventListener('focus', ajustarAltura);
 }
 
-/* 6. LÓGICA DE CLAVES (Usando baseDatos) */
+/* =========================================
+   5. LÓGICA DE CLAVES (DB & MODAL)
+   ========================================= */
 async function cargarClavesDesdeDB() {
     try {
-        // baseDatos ya existe porque se cargó en db.js
         const configGuardada = await baseDatos.leerUno('configuracion', 'claves_rapidas');
         if (configGuardada) {
             misClaves = configGuardada.datos;
@@ -134,7 +162,7 @@ Object.keys(misClaves).forEach(id => {
     }
 });
 
-// Modal Configuración de Claves
+// Modal Configuración
 const btnModificar = document.getElementById('btn_key_mod');
 const modalClaves = document.getElementById('modal_claves');
 const btnGuardarModal = document.getElementById('btn_guardar_modal');
@@ -162,11 +190,13 @@ if (btnGuardarModal) {
             await baseDatos.guardar('configuracion', { clave: 'claves_rapidas', datos: misClaves });
             alert("✅ Claves actualizadas.");
             if(modalClaves) modalClaves.classList.add('hidden');
-        } catch (e) { alert("Error guardando claves: " + e); }
+        } catch (e) { alert(e); }
     });
 }
 
-/* 7. MÉTRICAS AHT (Calculadas desde DB) */
+/* =========================================
+   6. MÉTRICAS AHT (REALES)
+   ========================================= */
 async function actualizarMetricasDesdeDB() {
     try {
         const historial = await baseDatos.leerTodo('historial');
@@ -203,18 +233,27 @@ async function actualizarMetricasDesdeDB() {
     } catch (error) { console.error("Error métricas:", error); }
 }
 
-/* 8. TIMER Y ALERTAS */
+/* =========================================
+   7. GESTIÓN DEL TIMER
+   ========================================= */
 function gestionarTimerRetoma(esReinicioManual = false) {
     if (timerPanel) timerPanel.classList.remove('hidden');
-    if (timerRetoma) clearInterval(timerRetoma);
+    
+    // CORRECCIÓN: Asegurar limpieza del intervalo previo
+    if (timerRetoma) {
+        clearInterval(timerRetoma);
+        timerRetoma = null;
+    }
 
     retomaStartTime = Date.now();
     if (!horaInicioLlamada) horaInicioLlamada = Date.now();
 
     if (esReinicioManual) {
-        primeraAlarmaSonada = true; proximaAlarmaSegundos = 115;
+        primeraAlarmaSonada = true; 
+        proximaAlarmaSegundos = 115;
     } else {
-        primeraAlarmaSonada = false; proximaAlarmaSegundos = 45;
+        primeraAlarmaSonada = false; 
+        proximaAlarmaSegundos = 45;
     }
 
     timerRetoma = setInterval(() => {
@@ -233,10 +272,14 @@ function gestionarTimerRetoma(esReinicioManual = false) {
             else displayCountdown.classList.remove('danger');
         }
 
+        // CORRECCIÓN: Lógica estricta para evitar múltiples disparos
         if (segundosCiclo >= proximaAlarmaSegundos) {
             sonarAlertaRetoma(); 
+            
+            // Actualizamos inmediatamente el próximo objetivo para que no vuelva a entrar en el IF
             if (!primeraAlarmaSonada) {
-                primeraAlarmaSonada = true; proximaAlarmaSegundos = segundosCiclo + 115;
+                primeraAlarmaSonada = true; 
+                proximaAlarmaSegundos = segundosCiclo + 115;
             } else {
                 proximaAlarmaSegundos += 115;
             }
@@ -266,7 +309,9 @@ if (callIdInput) {
     });
 }
 
-/* 9. INPUTS INTELIGENTES (AUTOCOMPLETE) */
+/* =========================================
+   8. INPUTS INTELIGENTES
+   ========================================= */
 function configurarInputAvanzado(inputElement, dataListId) {
     if (!inputElement) return;
     const label = inputElement.nextElementSibling;
@@ -337,7 +382,9 @@ if (techInput) techInput.addEventListener('change', (e) => {
 });
 if (prodInput) prodInput.addEventListener('change', (e) => actualizarFallas(e.target.value));
 
-/* 10. LÓGICA B2B (PANEL TOGGLE) */
+/* =========================================
+   9. LÓGICA B2B (MOSTRAR/OCULTAR)
+   ========================================= */
 if (radiosB2B && radiosB2B.length > 0) {
     radiosB2B.forEach(radio => {
         radio.addEventListener('change', (e) => {
@@ -352,9 +399,11 @@ if (radiosB2B && radiosB2B.length > 0) {
     });
 }
 
-/* 11. ACCIONES DE BOTONES (COPY, SAVE, EXPORT, IMPORT) */
+/* =========================================
+   10. BOTONES DE ACCIÓN PRINCIPALES
+   ========================================= */
 
-// --- COPIAR (Con el fix de Celular) ---
+// --- BOTÓN COPIAR ---
 const btnCopy = document.getElementById('btn_copy');
 if (btnCopy) {
     btnCopy.addEventListener('click', () => {
@@ -371,7 +420,7 @@ if (btnCopy) {
         plantilla += addField("Tipo de servicio", prodInput?.value);
         plantilla += addField("Naturaleza", failInput?.value);
         plantilla += addField("Documento", document.getElementById('customer_doc')?.value);
-        plantilla += addField("Celular", document.getElementById('customer_phone')?.value); // <--- AGREGADO
+        plantilla += addField("Celular", document.getElementById('customer_phone')?.value);
 
         const isB2B = document.querySelector('input[name="b2b_option"]:checked')?.value === 'si';
         if (isB2B) {
@@ -392,7 +441,7 @@ if (btnCopy) {
     });
 }
 
-// --- GUARDAR (Reiniciar) ---
+// --- BOTÓN REINICIAR / GUARDAR ---
 const btnReset = document.getElementById('btn_reset');
 if (btnReset) {
     btnReset.addEventListener('click', async () => {
@@ -406,6 +455,7 @@ if (btnReset) {
         const fin = Date.now();
         const duracionRaw = (horaInicioLlamada) ? (fin - horaInicioLlamada) / 1000 : 0;
         
+        // Creamos el registro - AQUÍ YA TENÍAS EL CELULAR, ESO ESTABA BIEN
         const registro = {
             id_unico: Date.now(),
             fecha: new Date().toLocaleDateString(),
@@ -413,7 +463,7 @@ if (btnReset) {
             id: idValor,
             cliente: document.getElementById('customer_name')?.value || '',
             cedula: document.getElementById('customer_doc')?.value || '',
-            celular: document.getElementById('customer_phone')?.value || '', // <--- AGREGADO
+            celular: document.getElementById('customer_phone')?.value || '', // Se guarda en DB
             smnet: document.getElementById('prueba_smnet')?.value || '',
             tec: techInput.value,
             prod: prodInput.value,
@@ -421,6 +471,7 @@ if (btnReset) {
             obs: obsValor,
             duracion: Number(duracionRaw.toFixed(2)),
             
+            // B2B Data
             esB2B: document.querySelector('input[name="b2b_option"]:checked')?.value === 'si',
             b2b_atiende: document.getElementById('b2b_contact')?.value || '',
             b2b_dias: document.getElementById('b2b_days')?.value || '',
@@ -433,7 +484,7 @@ if (btnReset) {
             await actualizarMetricasDesdeDB();
         } catch (error) { alert("Error DB: " + error); }
         
-        // Limpieza
+        // LIMPIEZA INTERFAZ
         horaInicioLlamada = null;
         document.querySelectorAll('input:not([type="radio"])').forEach(i => i.value = '');
         document.querySelectorAll('textarea').forEach(t => { 
@@ -463,12 +514,16 @@ if (btnExport) {
         if (historial.length === 0) { alert("⚠️ No hay datos."); return; }
 
         const fechaHoy = new Date().toLocaleDateString().replace(/\//g, '-');
-        let csv = "Fecha,Hora,ID,Cliente,Tecnologia,Servicio,Falla,Duracion,Observaciones\n";
+        
+        // CORRECCIÓN: Se agregó "Celular" al encabezado CSV
+        let csv = "Fecha,Hora,ID,Cliente,Celular,Tecnologia,Servicio,Falla,Duracion,Observaciones\n";
         
         historial.forEach(r => {
             const obsClean = (r.obs || '').replace(/"/g, '""').replace(/(\r\n|\n|\r)/gm, " ");
             const dur = r.duracion ? r.duracion.toString().replace('.', ',') : '0';
-            csv += `${r.fecha},${r.hora},${r.id},"${r.cliente}",${r.tec},${r.prod},"${r.falla}",${dur},"${obsClean}"\n`;
+            // CORRECCIÓN: Se agregó r.celular (usando r.celular || '') para evitar nulls
+            const cel = r.celular || '';
+            csv += `${r.fecha},${r.hora},${r.id},"${r.cliente}","${cel}",${r.tec},${r.prod},"${r.falla}",${dur},"${obsClean}"\n`;
         });
         
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -482,8 +537,10 @@ if (btnExport) {
 // --- IMPORTAR ---
 const btnImport = document.getElementById('btn_import_data');
 const fileSelector = document.getElementById('file_selector');
+
 if (btnImport && fileSelector) {
     btnImport.addEventListener('click', () => fileSelector.click());
+
     fileSelector.addEventListener('change', function(e) {
         const archivo = e.target.files[0];
         if (!archivo) return;
@@ -492,13 +549,46 @@ if (btnImport && fileSelector) {
             const contenido = e.target.result;
             let datosParaImportar = [];
             try {
-                if (archivo.name.endsWith('.json')) datosParaImportar = JSON.parse(contenido);
-                else if (archivo.name.endsWith('.csv')) { /* Lógica CSV simplificada */ } // Expandir si es necesario
+                if (archivo.name.endsWith('.json')) {
+                    datosParaImportar = JSON.parse(contenido);
+                } else if (archivo.name.endsWith('.csv')) {
+                    const lineas = contenido.split('\n');
+                    for (let i = 1; i < lineas.length; i++) {
+                        const linea = lineas[i].trim();
+                        if (linea) {
+                            // Parsea respetando comillas
+                            const partes = linea.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+                            const cols = partes.map(p => p.replace(/^"|"$/g, '').trim());
+                            
+                            // Ajustado para incluir celular si viene en la columna 4
+                            if (cols.length >= 8) {
+                                datosParaImportar.push({
+                                    id_unico: Date.now() + i,
+                                    fecha: cols[0], 
+                                    hora: cols[1], 
+                                    id: cols[2], 
+                                    cliente: cols[3],
+                                    // Asumimos que si el CSV tiene celular, está en cols[4] segun el orden de exportación nuevo
+                                    // Si es un CSV viejo, el orden podría variar, pero esto asegura compatibilidad con el nuevo formato
+                                    celular: (cols.length >= 10) ? cols[4] : '', 
+                                    tec: (cols.length >= 10) ? cols[5] : cols[4], 
+                                    prod: (cols.length >= 10) ? cols[6] : cols[5], 
+                                    falla: (cols.length >= 10) ? cols[7] : cols[6],
+                                    duracion: parseFloat(((cols.length >= 10) ? cols[8] : cols[7]).replace(',', '.')) || 0,
+                                    obs: (cols.length >= 10) ? cols[9] : cols[8] || ''
+                                });
+                            }
+                        }
+                    }
+                }
                 
                 if (datosParaImportar.length > 0 && confirm(`¿Importar ${datosParaImportar.length} registros?`)) {
                     for (const registro of datosParaImportar) {
-                        if(!registro.id_unico) registro.id_unico = Date.now() + Math.random();
-                        await baseDatos.guardar('historial', registro);
+                        const existe = (await baseDatos.leerTodo('historial')).find(r => r.id === registro.id && r.fecha === registro.fecha);
+                        if (!existe) {
+                            if(!registro.id_unico) registro.id_unico = Date.now() + Math.random();
+                            await baseDatos.guardar('historial', registro);
+                        }
                     }
                     alert("✅ Importación completada.");
                     await actualizarMetricasDesdeDB();
@@ -521,18 +611,17 @@ if (btnClear) {
     });
 }
 
-/* 12. INICIALIZACIÓN */
+/* =========================================
+   11. INICIALIZACIÓN
+   ========================================= */
 async function init() {
     llenarDatalist(techList, Object.keys(opcionesTiposervicio));
     try {
-        // AQUÍ ESTÁ LA CLAVE: 
-        // baseDatos se define en db.js. Si db.js no cargó, esto fallará.
+        // Usa la instancia global creada en db.js
         await baseDatos.iniciar();
         console.log("✅ DB Conectada (App Principal)");
         await cargarClavesDesdeDB();
         await actualizarMetricasDesdeDB(); 
-    } catch (error) { 
-        console.error("Fallo inicialización. ¿Cargaste js/db.js en el HTML?", error); 
-    }
+    } catch (error) { console.error("Fallo inicialización:", error); }
 }
 init();
