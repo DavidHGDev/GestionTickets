@@ -28,23 +28,22 @@
             margin: 0;
             height: 100vh;
             display: flex;
-            overflow: hidden; /* Evita scroll doble */
+            overflow: hidden; 
         }
 
         /* =========================================
-           2. LAYOUT: SIDEBAR + MAIN
+           2. SIDEBAR (LISTA DE PLANTILLAS)
            ========================================= */
-        
-        /* --- SIDEBAR IZQUIERDO --- */
         aside {
-            width: 300px;
+            width: 320px;
             background: var(--bg-sidebar);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             padding: 20px;
             box-shadow: 2px 0 10px rgba(0,0,0,0.03);
-            z-index: 10;
+            z-index: 20;
+            transition: transform 0.3s ease;
         }
 
         .brand {
@@ -57,14 +56,10 @@
             gap: 10px;
         }
 
-        .search-box {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
+        .search-box { position: relative; margin-bottom: 20px; }
         .search-box input {
             width: 100%;
-            padding: 10px 10px 10px 35px;
+            padding: 12px 10px 12px 35px;
             border-radius: 8px;
             border: 1px solid var(--border);
             background: #f8fafc;
@@ -72,7 +67,7 @@
             transition: all 0.2s;
         }
         .search-box input:focus { border-color: var(--primary); background: #fff; }
-        .search-icon { position: absolute; left: 10px; top: 11px; color: var(--text-muted); }
+        .search-icon { position: absolute; left: 10px; top: 12px; color: var(--text-muted); }
 
         .template-list {
             flex: 1;
@@ -80,14 +75,18 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            padding-right: 5px; /* Espacio para scrollbar */
         }
 
-        /* Botones de la lista */
+        /* Scrollbar fina para la lista */
+        .template-list::-webkit-scrollbar { width: 5px; }
+        .template-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
         .tpl-btn {
             text-align: left;
-            padding: 12px 15px;
+            padding: 14px 15px;
             border: 1px solid transparent;
-            border-radius: 8px;
+            border-radius: 10px;
             background: transparent;
             color: var(--text-main);
             cursor: pointer;
@@ -95,7 +94,7 @@
             transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         .tpl-btn:hover { background: #f1f5f9; }
@@ -104,7 +103,7 @@
             background: #eff6ff;
             color: var(--primary);
             border-color: #bfdbfe;
-            font-weight: 600;
+            font-weight: 700;
         }
 
         .btn-back {
@@ -123,28 +122,32 @@
         }
         .btn-back:hover { background: #e2e8f0; color: var(--text-main); }
 
-        /* --- ÁREA PRINCIPAL --- */
+        /* =========================================
+           3. ÁREA PRINCIPAL (FORMULARIO)
+           ========================================= */
         main {
             flex: 1;
-            padding: 40px;
+            padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            position: relative;
+            background-color: var(--bg-body);
         }
 
         .workspace {
             width: 100%;
-            max-width: 650px;
+            max-width: 700px;
             background: white;
-            padding: 40px;
+            padding: 30px;
             border-radius: 16px;
             box-shadow: var(--shadow);
             opacity: 0;
             transform: translateY(20px);
             transition: all 0.3s ease-out;
-            display: none; /* Oculto hasta seleccionar */
+            display: none;
+            margin-bottom: 40px; /* Espacio extra al final en móvil */
         }
         
         .workspace.visible {
@@ -154,57 +157,85 @@
         }
 
         .form-header {
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             border-bottom: 2px solid #f1f5f9;
             padding-bottom: 15px;
-        }
-        
-        .form-title { margin: 0; color: var(--primary); font-size: 1.5rem; }
-        .form-subtitle { margin: 5px 0 0 0; color: var(--text-muted); font-size: 0.9rem; }
-
-        /* =========================================
-           3. ESTILOS DE INPUTS (IGUAL AL DASHBOARD)
-           ========================================= */
-        .form-grid {
-            display: grid;
+            display: flex;
+            align-items: center;
             gap: 15px;
         }
+        
+        /* Botón "Volver al Menú" (Solo visible en móvil) */
+        .mobile-menu-btn {
+            display: none; /* Oculto en escritorio */
+            background: #e0f2fe;
+            color: var(--primary);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .form-info { flex: 1; }
+        .form-title { margin: 0; color: var(--primary); font-size: 1.4rem; }
+        .form-subtitle { margin: 5px 0 0 0; color: var(--text-muted); font-size: 0.85rem; }
+
+        .empty-state {
+            text-align: center;
+            margin-top: 20%;
+            color: #94a3b8;
+            padding: 20px;
+        }
+        .empty-icon { font-size: 4rem; margin-bottom: 15px; display: block; }
+
+        /* =========================================
+           4. ESTILOS DE INPUTS
+           ========================================= */
+        .form-grid { display: grid; gap: 18px;  }
 
         .floating-group { position: relative; width: 100%; }
         
         .floating-group input, .floating-group textarea {
             width: 100%;
-            padding: 12px 10px;
+            padding: 14px 12px; /* Un poco más grande para dedos */
             border: 1.5px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.95rem;
+            border-radius: 10px;
+            font-size: 1rem;
             outline: none;
             transition: 0.2s;
             color: var(--text-main);
+            background: #fff;
         }
 
-        .floating-group textarea { resize: none; min-height: 80px; font-family: inherit; }
+        /* Busca esta parte en tu CSS y actualízala */
+        .floating-group textarea { 
+            resize: none; 
+            min-height: 90px; 
+            font-family: inherit;
+            overflow: hidden; /* <--- AGREGAR ESTO para evitar barras feas */
+        }
 
         .floating-group label {
             position: absolute;
-            left: 10px;
+            left: 12px;
             top: 50%;
             transform: translateY(-50%);
             background: white;
             padding: 0 4px;
             color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             pointer-events: none;
             transition: 0.2s;
         }
         
-        /* Estado Flotante */
         .floating-group input:focus, .floating-group textarea:focus { border-color: var(--primary); }
         .floating-group input:focus ~ label,
         .floating-group input:not(:placeholder-shown) ~ label,
         .floating-group textarea:focus ~ label,
         .floating-group textarea:not(:placeholder-shown) ~ label {
-            top: 0; font-size: 0.75rem; color: var(--primary); font-weight: 700;
+            top: 0; font-size: 0.8rem; color: var(--primary); font-weight: 700;
         }
         
         .floating-group textarea ~ label { top: 20px; }
@@ -212,67 +243,128 @@
         .floating-group textarea:not(:placeholder-shown) ~ label { top: 0; }
 
         /* =========================================
-           4. BOTONES DE ACCIÓN
+           5. BOTONES DE ACCIÓN
            ========================================= */
         .actions-bar {
             margin-top: 30px;
             display: flex;
-            gap: 15px;
+            gap: 12px;
+            flex-wrap: wrap; /* Para que bajen si no caben */
         }
 
         .btn-action {
             flex: 1;
-            padding: 14px;
+            padding: 15px;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             font-weight: 700;
             font-size: 1rem;
             cursor: pointer;
-            transition: transform 0.1s, background 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            min-width: 140px;
         }
-        .btn-action:active { transform: scale(0.98); }
 
-        .btn-copy { background: var(--primary); color: white; }
-        .btn-copy:hover { background: var(--primary-dark); }
+        .btn-copy { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); }
+        .btn-copy:active { background: var(--primary-dark); transform: scale(0.98); }
         
         .btn-clear { background: #fee2e2; color: #dc2626; }
-        .btn-clear:hover { background: #fecaca; }
+        .btn-clear:active { background: #fecaca; transform: scale(0.98); }
 
-        /* Mensaje de bienvenida (Placeholder) */
-        .empty-state {
-            text-align: center;
-            margin-top: 100px;
-            color: #94a3b8;
-        }
-        .empty-icon { font-size: 4rem; margin-bottom: 15px; display: block; }
-
-        /* Toast Notification */
+        /* Toast */
         .toast {
-            position: fixed; bottom: 30px; right: 30px;
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
             background: #10b981; color: white;
             padding: 12px 24px; border-radius: 50px;
             font-weight: bold; box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
-            transform: translateY(100px); opacity: 0;
-            transition: all 0.3s;
+            opacity: 0; transition: all 0.3s;
+            z-index: 100; white-space: nowrap;
         }
-        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        /* =========================================
+           6. RESPONSIVE (MÓVIL < 768px)
+           ========================================= */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column; /* Cambiar layout */
+                overflow: hidden;
+            }
+
+            /* SIDEBAR EN MÓVIL (PANTALLA COMPLETA INICIALMENTE) */
+            aside {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                top: 0;
+                left: 0;
+                transform: translateX(0); /* Visible por defecto */
+                z-index: 50;
+            }
+
+            aside.hidden {
+                transform: translateX(-100%); /* Se oculta a la izquierda */
+            }
+
+            /* MAIN EN MÓVIL */
+            main {
+                width: 100%;
+                height: 100%;
+                padding: 15px;
+            }
+
+            .workspace {
+                max-width: 100%;
+                height: 100%; /* Ocupa todo */
+                padding: 20px;
+                border-radius: 0; /* Sin bordes redondos en full screen */
+                box-shadow: none;
+                margin-bottom: 0;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .form-grid {
+                flex: 1; /* Para que los botones bajen */
+                overflow-y: auto; /* Scroll interno en form */
+                padding-bottom: 20px;
+                margin-top: 10px;
+            }
+            
+            /* Botón Menú Visible */
+            .mobile-menu-btn { display: block; }
+
+            /* Ocultar empty state en móvil porque siempre arranca el sidebar */
+            .empty-state { display: none; }
+
+            .form-title { font-size: 1.2rem; }
+            .brand { justify-content: center; font-size: 1.4rem; }
+            
+            /* Ajuste de botones acción para que estén fijos abajo o al final */
+            .actions-bar {
+                margin-top: auto; 
+                flex-direction: column; /* Uno debajo del otro */
+            }
+
+            .floating-group {
+                margin-top: 10px;
+            }
+        }
 
     </style>
 </head>
 <body>
 
-    <aside>
+    <aside id="sidebar">
         <div class="brand">
             <span>📝 Plantillas PRO</span>
         </div>
         
         <div class="search-box">
             <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="Buscar plantilla..." autocomplete="off">
+            <input type="text" id="searchInput" placeholder="Buscar..." autocomplete="off">
         </div>
 
         <div class="template-list" id="templateList">
@@ -290,84 +382,45 @@
 
         <div id="workspace" class="workspace">
             <div class="form-header">
-                <h2 class="form-title" id="formTitle">Título Plantilla</h2>
-                <p class="form-subtitle">Diligencia los campos y presiona Copiar.</p>
+                <button class="mobile-menu-btn" onclick="mostrarSidebar()">☰</button>
+                
+                <div class="form-info">
+                    <h2 class="form-title" id="formTitle">Título</h2>
+                    <p class="form-subtitle">Diligencia los campos requeridos.</p>
+                </div>
             </div>
 
             <form id="dynamicForm" class="form-grid">
                 </form>
 
             <div class="actions-bar">
-                <button type="button" class="btn-action btn-clear" onclick="limpiarFormulario()">
-                    🗑️ Borrar / Reiniciar
-                </button>
                 <button type="button" class="btn-action btn-copy" onclick="copiarDatos()">
-                    📋 Copiar al Portapapeles
+                    📋 Copiar
+                </button>
+                <button type="button" class="btn-action btn-clear" onclick="limpiarFormulario()">
+                    🗑️ Reiniciar
                 </button>
             </div>
         </div>
     </main>
 
-    <div id="toast" class="toast">✅ ¡Datos copiados con éxito!</div>
+    <div id="toast" class="toast">✅ ¡Copiado!</div>
 
     <script>
-        /* =========================================
-           CONFIGURACIÓN: AGREGA AQUÍ TUS PLANTILLAS
-           ========================================= */
+        // CONFIGURACIÓN DE PLANTILLAS
         const CONFIG_PLANTILLAS = [
-            {
-                id: 'mitigo',
-                icon: '📱',
-                titulo: 'Habilitar MiTigo',
-                campos: ['Login', 'Nombre', 'Documento Identidad', 'Contrato Hogar', 'Celular', 'Correo Electrónico', 'Falla', 'Id de llamada', 'ID Chat']
-            },
-            {
-                id: 'agilizar',
-                icon: '🚀',
-                titulo: 'Agilizar Visita',
-                campos: ['Login', 'Número de incidente', 'Teléfonos (fijo-celular)', 'Tipo de solicitud', 'Ciudad', 'Id de llamada', 'Disponibilidad', 'Motivo']
-            },
-            {
-                id: 'decos',
-                icon: '📺',
-                titulo: 'Activar decos / paquetes',
-                campos: ['Login', 'Prueba Integrada', 'Pedido', 'ID TV', 'ID Llamada', "MAC's Deco(s) a activar", 'ID Inconsistencias', 'ID Chat']
-            },
-            {
-                id: 'ldap',
-                icon: '🔑',
-                titulo: 'Perfil LDAP',
-                campos: ['Login', 'Prueba Integrada', 'Pedido (velocidad del BA)', 'ID BA', 'ID Llamada', 'MAC', 'Observación', 'ID Chat']
-            },
-            {
-                id: 'mal_retirado',
-                icon: '⚠️',
-                titulo: 'Deco mal retirado',
-                campos: ['Login', 'Prueba Integrada', 'Pedido', 'ID TV', 'ID Llamada', "MAC's Deco(s) a activar", "MAC's Deco(s) a inactivar", 'ID Inconsistencias', 'ID Chat']
-            },
-            {
-                id: 'cupos',
-                icon: '🎟️',
-                titulo: 'Habilitar Cupos',
-                campos: ['Login', 'Número de incidente', 'Teléfonos', 'Tipo de solicitud', 'Ciudad', 'Id de llamada', 'Disponibilidad', 'Motivo', 'ID Chat']
-            },
-            {
-                id: 'enviar_datos',
-                icon: '📨',
-                titulo: 'Enviar Datos',
-                campos: ['Activo', 'Alias', 'Cmts/Arpon', 'Ciudad', 'Naturaleza', 'Marca y Ref Equipo']
-            },
-            {
-                id: 'agenda',
-                icon: '📅',
-                titulo: 'Parametrizar Agenda',
-                campos: ['Pedido', 'Municipio', 'Barrio', 'Dirección', 'Tecnología', 'Tipo', 'Observaciones', 'Cel']
-            }
+            { id: 'mitigo', icon: '📱', titulo: 'Habilitar MiTigo', campos: ['Login', 'Nombre', 'Documento Identidad', 'Contrato Hogar', 'Celular', 'Correo Electrónico', 'Falla', 'Id de llamada', 'ID Chat'] },
+            { id: 'agilizar', icon: '🚀', titulo: 'Agilizar Visita', campos: ['Login', 'Número de incidente', 'Teléfonos', 'Tipo de solicitud', 'Ciudad', 'Id de llamada', 'Disponibilidad', 'Motivo'] },
+            { id: 'decos', icon: '📺', titulo: 'Activar decos / paquetes', campos: ['Login', 'Prueba Integrada', 'Pedido', 'ID TV', 'ID Llamada', "MAC's Deco(s) a activar", 'ID Inconsistencias', 'ID Chat'] },
+            { id: 'ldap', icon: '🔑', titulo: 'Perfil LDAP', campos: ['Login', 'Prueba Integrada', 'Pedido', 'ID BA', 'ID Llamada', 'MAC', 'Observación', 'ID Chat'] },
+            { id: 'mal_retirado', icon: '⚠️', titulo: 'Deco mal retirado', campos: ['Login', 'Prueba Integrada', 'Pedido', 'ID TV', 'ID Llamada', "MAC's Activar", "MAC's Inactivar", 'ID Inconsistencias', 'ID Chat'] },
+            { id: 'cupos', icon: '🎟️', titulo: 'Habilitar Cupos', campos: ['Login', 'Número de incidente', 'Teléfonos', 'Tipo de solicitud', 'Ciudad', 'Id de llamada', 'Disponibilidad', 'Motivo', 'ID Chat'] },
+            { id: 'enviar_datos', icon: '📨', titulo: 'Enviar Datos', campos: ['Activo', 'Alias', 'Cmts/Arpon', 'Ciudad', 'Naturaleza', 'Marca y Ref Equipo'] },
+            { id: 'agenda', icon: '📅', titulo: 'Parametrizar Agenda', campos: ['Pedido', 'Municipio', 'Barrio', 'Dirección', 'Tecnología', 'Tipo', 'Observaciones', 'Cel'] }
         ];
 
-        /* =========================================
-           LÓGICA DEL SISTEMA
-           ========================================= */
+        // Referencias DOM
+        const sidebar = document.getElementById('sidebar');
         const templateList = document.getElementById('templateList');
         const workspace = document.getElementById('workspace');
         const emptyState = document.getElementById('emptyState');
@@ -376,7 +429,7 @@
         const searchInput = document.getElementById('searchInput');
         const toast = document.getElementById('toast');
 
-        // Valores por defecto (Globales)
+        // Valores por defecto
         const DEFAULTS = {
             'Login': 'nherngom',
             'Tipo': 'RGU',
@@ -386,10 +439,7 @@
         // 1. Renderizar Sidebar
         function renderSidebar(filter = '') {
             templateList.innerHTML = '';
-            
-            const filtered = CONFIG_PLANTILLAS.filter(t => 
-                t.titulo.toLowerCase().includes(filter.toLowerCase())
-            );
+            const filtered = CONFIG_PLANTILLAS.filter(t => t.titulo.toLowerCase().includes(filter.toLowerCase()));
 
             filtered.forEach(t => {
                 const btn = document.createElement('button');
@@ -400,115 +450,114 @@
             });
         }
 
-        // 2. Cargar Formulario
+
+        // 2. Cargar Plantilla (MEJORADA: AUTO-GROW + ORTOGRAFÍA)
         function cargarPlantilla(id) {
-            // UI Switch
+            const data = CONFIG_PLANTILLAS.find(t => t.id === id);
+            if(!data) return;
+
+            // Lógica UI
             emptyState.style.display = 'none';
-            workspace.classList.remove('visible');
+            workspace.classList.remove('visible'); 
             
-            // Highlight activo
+            // En móvil: Ocultar sidebar
+            if (window.innerWidth <= 768) {
+                sidebar.classList.add('hidden');
+            }
+
+            // Highlight botón
             document.querySelectorAll('.tpl-btn').forEach(b => b.classList.remove('active'));
             event.target.closest('.tpl-btn')?.classList.add('active');
 
             setTimeout(() => {
-                const data = CONFIG_PLANTILLAS.find(t => t.id === id);
-                if(!data) return;
-
                 formTitle.textContent = data.titulo;
                 dynamicForm.innerHTML = '';
 
-                // Generar inputs
                 data.campos.forEach(campo => {
-                    // Determinar valor por defecto
-                    let val = '';
-                    if (DEFAULTS[campo]) val = DEFAULTS[campo];
+                    let val = DEFAULTS[campo] || '';
                     if (data.titulo === "Parametrizar Agenda" && campo === "Observaciones") val = "No parametriza agendas";
 
                     const div = document.createElement('div');
                     div.className = 'floating-group';
-                    
-                    // Decidir si es input o textarea (si dice 'Observación' o 'Motivo' suele ser largo)
                     const isLong = campo.includes('Observ') || campo.includes('Motivo') || campo.includes('Falla');
                     
                     if(isLong) {
+                        // AQUÍ ESTÁN LOS CAMBIOS:
+                        // 1. Agregamos spellcheck="true" y lang="es"
                         div.innerHTML = `
-                            <textarea id="field_${campo}" placeholder=" ">${val}</textarea>
-                            <label for="field_${campo}">${campo}</label>
+                            <textarea 
+                                id="field_${campo}" 
+                                placeholder=" " 
+                                spellcheck="true" 
+                                lang="es"
+                            >${val}</textarea>
+                            <label>${campo}</label>
                         `;
+
+                        // 2. Lógica de Auto-Crecimiento
+                        const textarea = div.querySelector('textarea');
+                        
+                        // Función para ajustar altura
+                        const autoResize = () => {
+                            textarea.style.height = 'auto'; // Resetear para recalcular
+                            textarea.style.height = (textarea.scrollHeight) + 'px'; // Ajustar al contenido
+                        };
+
+                        // Escuchar cuando el usuario escribe
+                        textarea.addEventListener('input', autoResize);
+
+                        // Ejecutar una vez al inicio por si ya trae texto por defecto
+                        // Usamos un pequeño timeout para asegurar que el DOM esté pintado
+                        setTimeout(autoResize, 0);
+
                     } else {
-                        div.innerHTML = `
-                            <input type="text" id="field_${campo}" value="${val}" placeholder=" ">
-                            <label for="field_${campo}">${campo}</label>
-                        `;
+                        div.innerHTML = `<input type="text" id="field_${campo}" value="${val}" placeholder=" "><label>${campo}</label>`;
                     }
                     dynamicForm.appendChild(div);
                 });
 
                 workspace.classList.add('visible');
-            }, 100); // Pequeño delay para la animación
+            }, 50); 
+        }
+        // 3. Funciones Móvil
+        function mostrarSidebar() {
+            sidebar.classList.remove('hidden');
         }
 
-        // 3. Generar Saludo
+        // 4. Utilidades Copiar
         function obtenerSaludo() {
             const h = new Date().getHours();
-            if (h >= 6 && h < 12) return "Buenos días";
-            if (h >= 12 && h < 18) return "Buenas tardes";
-            return "Buenas noches";
+            return (h >= 6 && h < 12) ? "Buenos días" : (h >= 12 && h < 18) ? "Buenas tardes" : "Buenas noches";
         }
 
-        // 4. Copiar Datos
         function copiarDatos() {
             const titulo = formTitle.textContent;
-            let texto = '';
+            let texto = (titulo === 'Enviar Datos' || titulo === 'Parametrizar Agenda') 
+                ? `${obtenerSaludo()}\n` 
+                : `${obtenerSaludo()}, Su ayuda por favor, con el siguiente requerimiento.\n`;
 
-            // Lógica de cabecera específica que tenías antes
-            if(titulo === 'Enviar Datos' || titulo === 'Parametrizar Agenda'){
-                texto = `${obtenerSaludo()}\n`;
-            } else {
-                texto = `${obtenerSaludo()}, Su ayuda por favor, con el siguiente requerimiento.\n`;
-            }
+            texto += `*${titulo}*\n`;
 
-            texto += `*${titulo}*\n`; // Puse negrita en markdown por si acaso
-
-            // Recorrer inputs
             const inputs = dynamicForm.querySelectorAll('input, textarea');
             inputs.forEach(inp => {
                 const label = inp.nextElementSibling.textContent;
                 const valor = inp.value.trim();
-                texto += `${label}: ${valor}\n`;
+                if(valor) texto += `${label}: ${valor}\n`;
             });
 
-            // Copiar
             navigator.clipboard.writeText(texto).then(() => {
-                mostrarToast();
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
             });
         }
 
-        // 5. Limpiar / Reiniciar
         function limpiarFormulario() {
-            const inputs = dynamicForm.querySelectorAll('input, textarea');
-            const titulo = formTitle.textContent;
-
-            inputs.forEach(inp => {
-                const campo = inp.nextElementSibling.textContent;
-                // Restaurar defaults
-                if (campo === "Login") inp.value = "nherngom";
-                else if (campo === "Tipo") inp.value = "RGU";
-                else if (titulo === "Parametrizar Agenda" && campo === "Observaciones") inp.value = "No parametriza agendas";
-                else inp.value = "";
-            });
-            inputs[0].focus(); // Foco al primero
-        }
-
-        // 6. Utilidades
-        function mostrarToast() {
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
+            cargarPlantilla(CONFIG_PLANTILLAS.find(t => t.titulo === formTitle.textContent).id);
         }
 
         searchInput.addEventListener('input', (e) => renderSidebar(e.target.value));
 
-        // Iniciar
+        // Init
         renderSidebar();
 
     </script>
