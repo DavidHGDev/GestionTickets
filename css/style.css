@@ -158,11 +158,29 @@ body {
     transition: all 0.2s;
     font-weight: 600;
     flex: 1;
+    
 }
 
 .tool-btn:hover {
     background-color: #f1f5f9;
     color: var(--primary-color);
+}
+
+/* Agrega o modifica esto en tu style.css */
+
+a.tool-btn {
+    text-decoration: none; /* ESTO QUITA LA RAYITA */
+    color: #64748b;        /* El mismo color gris de tus botones */
+    display: flex;         /* Para centrar el contenido igual que los botones */
+    align-items: center;
+    justify-content: center;
+}
+
+/* Asegura que al pasar el mouse también cambie de color igual que los botones */
+a.tool-btn:hover {
+    background-color: #f1f5f9;
+    color: var(--primary-color); /* Tu azul corporativo */
+    transform: translateY(-1px);
 }
 
 /* =========================================

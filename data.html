@@ -3,86 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base de Datos - Tickets</title>
+    <title>Centro de Datos - Tickets PRO</title>
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* Estilos específicos para esta página */
-        .filter-bar {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            flex-wrap: wrap;
-        }
-        .filter-input {
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            flex: 1;
-        }
-        .limit-input {
-            width: 80px;
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-        }
-        .btn-back {
-            background-color: #64748b;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 15px;
-        }
-    </style>
+    <link rel="stylesheet" href="css/dashboard.css">
 </head>
-<body>
+<body style="background-color: #f1f5f9;">
 
-    <div class="card-container dashboard-container">
-        
-        <a href="index.html" class="btn-back">⬅ Volver al Formulario</a>
-
-        <h2 style="color: #1e3a8a; margin-bottom: 15px;">📊 Centro de Datos</h2>
-
-        <div class="filter-bar">
-            <input type="text" id="txt_search" class="filter-input" placeholder="🔍 Buscar por ID de llamada...">
-            
-            <div style="display:flex; align-items:center; gap:5px;">
-                <label style="font-size:0.8rem; font-weight:bold;">Mostrar:</label>
-                <input type="number" id="num_limit" class="limit-input" value="20" min="1">
-            </div>
-
-            <button class="tool-btn" id="btn_refresh">🔄 Recargar</button>
-            <button class="tool-btn" id="btn_export_dash">📥 Descargar Vista</button>
+    <div class="dashboard-wrapper">
+        <div class="dash-header">
+            <h1 class="dash-title">📊 Centro de Control de Datos</h1>
+            <button id="btn_back_home" class="btn-back-home">⬅ Volver al Formulario</button>
         </div>
 
-        <div class="table-wrapper">
-            <table id="tabla_registros">
+        <div class="filter-container">
+            <div class="floating-group">
+                <input type="text" id="txt_search" placeholder=" " autocomplete="off">
+                <label>🔍 Buscar por ID, Cliente o Cédula</label>
+            </div>
+            <div class="floating-group">
+                <input type="number" id="num_limit" value="20" min="1" placeholder=" ">
+                <label>Cant. Registros</label>
+            </div>
+            <button class="tool-btn" id="btn_refresh" style="height: 48px; background: white; border: 1px solid #cbd5e1;">🔄 Recargar</button>
+            <button class="tool-btn" id="btn_export_dash" style="height: 48px; background: white; border: 1px solid #cbd5e1;">📥 Exportar Vista</button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="modern-table" id="tabla_registros">
                 <thead>
                     <tr>
-                        <th>Fecha/Hora</th>
+                        <th>Fecha</th>
                         <th>ID Llamada</th>
                         <th>Cliente</th>
-                        <th>Cédula</th>
                         <th>Celular</th>
+                        <th>Tecnología</th>
+                        <th>Falla</th>
                         <th>Duración</th>
-                        <th>Obs</th>
-                        <th>Acción</th>
+                        <th>Observaciones</th>
+                        <th style="text-align: center;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="dashboard_body">
                     </tbody>
             </table>
-            <p id="no_results" style="text-align:center; color:#94a3b8; display:none; padding:20px;">No se encontraron registros.</p>
+            <div id="no_results" style="padding: 40px; text-align: center; color: #64748b; display: none;">
+                <p style="font-size: 1.2rem;">📭 No se encontraron registros con ese criterio.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal_edicion">
+        <div class="edit-card">
+            <div class="edit-header">
+                <h3 style="margin:0; color:#1e3a8a;">✏️ Editar Registro</h3>
+                <button id="btn_close_modal_x" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color: #64748b;">&times;</button>
+            </div>
+
+            <div class="modal-grid">
+                <input type="hidden" id="edit_id_unico">
+
+                <div class="floating-group">
+                    <input type="text" id="edit_call_id" placeholder=" ">
+                    <label>ID Llamada</label>
+                </div>
+                <div class="floating-group">
+                    <input type="text" id="edit_cliente" placeholder=" ">
+                    <label>Nombre Cliente</label>
+                </div>
+                <div class="floating-group">
+                    <input type="text" id="edit_celular" placeholder=" ">
+                    <label>Celular</label>
+                </div>
+                <div class="floating-group">
+                    <input type="text" id="edit_cedula" placeholder=" ">
+                    <label>Cédula</label>
+                </div>
+                
+                <div class="floating-group">
+                    <input type="text" id="edit_tec" placeholder=" ">
+                    <label>Tecnología</label>
+                </div>
+                <div class="floating-group">
+                    <input type="text" id="edit_falla" placeholder=" ">
+                    <label>Falla</label>
+                </div>
+
+                <div class="floating-group">
+                    <input type="number" id="edit_minutos" placeholder=" " step="0.1">
+                    <label>⏱️ Minutos (Calculadora)</label>
+                </div>
+                <div class="floating-group">
+                    <input type="number" id="edit_duracion" placeholder=" " step="0.01">
+                    <label>⏱️ Segundos (Real en DB)</label>
+                </div>
+
+                <div class="floating-group modal-full">
+                    <textarea id="edit_obs" placeholder=" "></textarea>
+                    <label>Observaciones (Se expande)</label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" id="btn_cancel_edit">Cancelar</button>
+                <button class="btn-modal-save" id="btn_save_edit">💾 Guardar Cambios</button>
+            </div>
         </div>
     </div>
 
     <script src="js/db.js"></script>
-    <script src="js/dashboard.js"></script> </body>
+    <script src="js/dashboard.js"></script>
+</body>
 </html>

@@ -1,137 +1,244 @@
 /* =========================================
-   js/dashboard.js - LÓGICA DEL CENTRO DE DATOS
+   js/dashboard.js - VERSIÓN FINAL CON BÚSQUEDA INTELIGENTE
    ========================================= */
 
-// Elementos del DOM
+// --- 1. REFERENCIAS DOM ---
 const tbody = document.getElementById('dashboard_body');
 const txtSearch = document.getElementById('txt_search');
 const numLimit = document.getElementById('num_limit');
 const btnRefresh = document.getElementById('btn_refresh');
 const msgNoResults = document.getElementById('no_results');
 const btnExport = document.getElementById('btn_export_dash');
+const btnBackHome = document.getElementById('btn_back_home');
 
-// Variable global para guardar los datos crudos y filtrar sobre ellos
+// Modal Elements
+const modal = document.getElementById('modal_edicion');
+const btnCloseX = document.getElementById('btn_close_modal_x');
+const btnCancel = document.getElementById('btn_cancel_edit');
+const btnSave = document.getElementById('btn_save_edit');
+const editObs = document.getElementById('edit_obs');
+
+// Campos de Tiempo (Calculadora)
+const editDuracion = document.getElementById('edit_duracion'); // Segundos
+const editMinutos = document.getElementById('edit_minutos');   // Minutos
+
+// Datos en memoria
 let todosLosRegistros = [];
 
-// 1. FUNCIÓN PRINCIPAL DE CARGA
-async function cargarDatos() {
+/* =========================================
+   2. INICIALIZACIÓN
+   ========================================= */
+async function initDash() {
     try {
-        // Leemos todo de la DB usando la clase compartida
-        todosLosRegistros = await baseDatos.leerTodo('historial');
-        aplicarFiltros(); // Aplicamos búsqueda y límite
-    } catch (error) {
-        console.error("Error cargando datos:", error);
-    }
+        await baseDatos.iniciar();
+        console.log("DB Dashboard Ready");
+        await cargarDatos();
+        setupTimeConverters(); // Iniciar escuchas para conversión de tiempo
+    } catch (e) { console.error(e); }
 }
 
-// 2. FILTRADO Y RENDERIZADO
-function aplicarFiltros() {
-    const busqueda = txtSearch.value.trim().toLowerCase();
-    const limite = parseInt(numLimit.value) || 20;
+async function cargarDatos() {
+    todosLosRegistros = await baseDatos.leerTodo('historial');
+    aplicarFiltros();
+}
 
-    // A. Filtrar por ID (o cliente si quisieras agregarlo)
-    let filtrados = todosLosRegistros.filter(reg => {
-        if (!busqueda) return true; // Si no hay búsqueda, pasan todos
-        return reg.id.toLowerCase().includes(busqueda);
+/* =========================================
+   3. FILTRADO INTELIGENTE (TU SOLICITUD AQUÍ)
+   ========================================= */
+function aplicarFiltros() {
+    // 1. Convertimos lo que escribe el usuario a MINÚSCULAS y quitamos espacios
+    const term = txtSearch.value.trim().toLowerCase();
+    const limit = parseInt(numLimit.value) || 20;
+
+    const filtrados = todosLosRegistros.filter(r => {
+        if (!term) return true; // Si no hay búsqueda, mostrar todo
+
+        // 2. Convertimos los datos de la DB a MINÚSCULAS antes de comparar
+        // Usamos String() por si el ID es solo números, para que no de error
+        const idDB = String(r.id || '').toLowerCase();
+        const clienteDB = String(r.cliente || '').toLowerCase();
+        const cedulaDB = String(r.cedula || '').toLowerCase();
+
+        // 3. Creamos una sola cadena con todos los datos clave
+        const textoCompleto = `${idDB} ${clienteDB} ${cedulaDB}`;
+        
+        // 4. Verificamos si la búsqueda está dentro de esa cadena
+        return textoCompleto.includes(term);
     });
 
-    // B. Limitar cantidad
-    const totalEncontrados = filtrados.length;
-    const datosFinales = filtrados.slice(0, limite);
-
-    // C. Pintar Tabla
-    pintarTabla(datosFinales);
-
-    // Feedback visual
-    if (totalEncontrados === 0) {
-        msgNoResults.style.display = 'block';
+    // Manejo visual si no hay resultados
+    if (filtrados.length === 0) {
         tbody.innerHTML = '';
-    } else {
-        msgNoResults.style.display = 'none';
+        msgNoResults.style.display = 'block';
+        return;
     }
+    msgNoResults.style.display = 'none';
+
+    // Recortar según el límite visual y pintar
+    const datosFinales = filtrados.slice(0, limit);
+    pintarTabla(datosFinales);
 }
 
-// 3. GENERAR HTML DE LA TABLA
 function pintarTabla(datos) {
     tbody.innerHTML = '';
     
     datos.forEach(reg => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td style="font-size:0.75rem;">
-                ${reg.fecha}<br><span style="color:#64748b">${reg.hora}</span>
-            </td>
-            <td><b>${reg.id}</b></td>
-            <td>${reg.cliente || '-'}</td>
-            <td>${reg.cedula || '-'}</td>
+            <td style="font-size:0.85rem;">${reg.fecha}<br><span style="color:#94a3b8">${reg.hora}</span></td>
+            <td class="col-id">${reg.id}</td>
+            <td><b>${reg.cliente || '-'}</b></td>
             <td>${reg.celular || '-'}</td>
-            <td>${reg.duracion}s</td>
-            <td class="obs-cell" title="${reg.obs}">${reg.obs}</td>
-            <td>
-                <button class="btn-mini btn-del-row" onclick="borrarDesdeDash(${reg.id_unico})">🗑️</button>
+            <td>${reg.tec || '-'}</td>
+            <td>${reg.falla || '-'}</td>
+            <td class="col-duracion">${reg.duracion}s</td>
+            <td class="col-obs" title="${reg.obs}">${reg.obs}</td>
+            <td style="text-align: center;">
+                <div class="action-btn-group">
+                    <button class="btn-action btn-edit" onclick="abrirEdicion(${reg.id_unico})" title="Modificar">✏️</button>
+                    <button class="btn-action btn-del" onclick="borrarRegistro(${reg.id_unico})" title="Eliminar">🗑️</button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-// 4. ELIMINAR REGISTRO
-window.borrarDesdeDash = async (idUnico) => {
-    if(confirm("¿Eliminar este registro permanentemente?")) {
-        await baseDatos.eliminar('historial', idUnico);
-        await cargarDatos(); // Recargar la tabla
+/* =========================================
+   4. CONVERSORES DE TIEMPO (MIN <-> SEG)
+   ========================================= */
+function setupTimeConverters() {
+    // Si escribo en MINUTOS -> Calcula SEGUNDOS
+    if (editMinutos) {
+        editMinutos.addEventListener('input', () => {
+            const mins = parseFloat(editMinutos.value) || 0;
+            editDuracion.value = (mins * 60).toFixed(2);
+        });
     }
-};
 
-// 5. EVENT LISTENERS (REACTIVIDAD)
-
-// Buscar al escribir (con un pequeño delay opcional, aquí directo)
-txtSearch.addEventListener('input', () => {
-    aplicarFiltros();
-});
-
-// Cambiar límite
-numLimit.addEventListener('change', () => {
-    aplicarFiltros();
-});
-
-// Botón Recargar
-btnRefresh.addEventListener('click', cargarDatos);
-
-// Botón Exportar lo que se ve en pantalla
-btnExport.addEventListener('click', () => {
-    const busqueda = txtSearch.value.trim().toLowerCase();
-    // Filtramos de nuevo para exportar todo lo que coincida con la búsqueda (sin el límite visual)
-    const datosParaExportar = todosLosRegistros.filter(reg => {
-        if (!busqueda) return true;
-        return reg.id.toLowerCase().includes(busqueda);
-    });
-
-    if (datosParaExportar.length === 0) return alert("No hay datos para exportar");
-
-    let csv = "Fecha,Hora,ID,Cliente,Cedula,Celular,Duracion,Observaciones\n";
-    datosParaExportar.forEach(r => {
-        const obs = (r.obs || '').replace(/"/g, '""').replace(/(\r\n|\n|\r)/gm, " ");
-        csv += `${r.fecha},${r.hora},${r.id},"${r.cliente}","${r.cedula}","${r.celular}",${r.duracion},"${obs}"\n`;
-    });
-
-    const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Data_Filtrada_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
-    link.click();
-});
-
-// 6. INICIALIZAR
-async function initDash() {
-    try {
-        await baseDatos.iniciar();
-        console.log("DB Conectada en Dashboard");
-        cargarDatos();
-    } catch (e) {
-        console.error(e);
-        alert("Error conectando DB");
+    // Si escribo en SEGUNDOS -> Calcula MINUTOS
+    if (editDuracion) {
+        editDuracion.addEventListener('input', () => {
+            const secs = parseFloat(editDuracion.value) || 0;
+            editMinutos.value = (secs / 60).toFixed(2);
+        });
     }
 }
 
+/* =========================================
+   5. SISTEMA DE EDICIÓN (MODAL)
+   ========================================= */
+window.abrirEdicion = (idUnico) => {
+    const registro = todosLosRegistros.find(r => r.id_unico === idUnico);
+    if (!registro) return;
+
+    // Llenar campos
+    document.getElementById('edit_id_unico').value = registro.id_unico;
+    document.getElementById('edit_call_id').value = registro.id || '';
+    document.getElementById('edit_cliente').value = registro.cliente || '';
+    document.getElementById('edit_celular').value = registro.celular || '';
+    document.getElementById('edit_cedula').value = registro.cedula || '';
+    document.getElementById('edit_tec').value = registro.tec || '';
+    document.getElementById('edit_falla').value = registro.falla || '';
+    
+    // TIEMPO: Cargar segundos y calcular minutos para mostrar
+    const segundos = registro.duracion || 0;
+    editDuracion.value = segundos;
+    editMinutos.value = (segundos / 60).toFixed(2);
+
+    // Observaciones
+    editObs.value = registro.obs || '';
+    ajustarAlturaModal();
+
+    modal.classList.add('active');
+};
+
+function cerrarModal() { modal.classList.remove('active'); }
+
+function ajustarAlturaModal() {
+    editObs.style.height = 'auto';
+    editObs.style.height = (editObs.scrollHeight) + 'px';
+}
+editObs.addEventListener('input', ajustarAlturaModal);
+
+// GUARDAR CAMBIOS
+btnSave.addEventListener('click', async () => {
+    const idUnico = parseFloat(document.getElementById('edit_id_unico').value);
+    const registroOriginal = todosLosRegistros.find(r => r.id_unico === idUnico);
+    if (!registroOriginal) return;
+
+    const registroActualizado = {
+        ...registroOriginal,
+        id: document.getElementById('edit_call_id').value,
+        cliente: document.getElementById('edit_cliente').value,
+        celular: document.getElementById('edit_celular').value,
+        cedula: document.getElementById('edit_cedula').value,
+        tec: document.getElementById('edit_tec').value,
+        falla: document.getElementById('edit_falla').value,
+        // Guardamos los segundos (que es lo que importa para el AHT)
+        duracion: parseFloat(editDuracion.value) || 0,
+        obs: editObs.value
+    };
+
+    try {
+        await baseDatos.guardar('historial', registroActualizado);
+        cerrarModal();
+        await cargarDatos(); 
+        alert("✅ Registro actualizado (AHT Recalculado)");
+    } catch (e) { alert("Error: " + e); }
+});
+
+// Cerrar Modal
+btnCloseX.addEventListener('click', cerrarModal);
+btnCancel.addEventListener('click', cerrarModal);
+modal.addEventListener('click', (e) => { if (e.target === modal) cerrarModal(); });
+
+/* =========================================
+   6. EVENTOS GLOBALES
+   ========================================= */
+if (btnBackHome) {
+    btnBackHome.addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+}
+
+// Eliminar
+window.borrarRegistro = async (idUnico) => {
+    if (confirm("¿Estás seguro de eliminar este registro?")) {
+        await baseDatos.eliminar('historial', idUnico);
+        await cargarDatos();
+    }
+};
+
+// Listeners de búsqueda y exportación
+txtSearch.addEventListener('input', aplicarFiltros);
+numLimit.addEventListener('change', aplicarFiltros);
+btnRefresh.addEventListener('click', cargarDatos);
+
+// Exportar filtrado
+btnExport.addEventListener('click', () => {
+    const term = txtSearch.value.trim().toLowerCase();
+    const exportar = todosLosRegistros.filter(r => {
+        if (!term) return true;
+        // Misma lógica de búsqueda para la exportación
+        const texto = `${r.id} ${r.cliente} ${r.cedula || ''}`.toLowerCase();
+        return texto.includes(term);
+    });
+
+    if (!exportar.length) return alert("Nada que exportar");
+
+    let csv = "Fecha,Hora,ID,Cliente,Celular,Tec,Falla,Duracion,Obs\n";
+    exportar.forEach(r => {
+        const o = (r.obs || '').replace(/"/g, '""').replace(/(\r\n|\n|\r)/gm, " ");
+        csv += `${r.fecha},${r.hora},${r.id},"${r.cliente}","${r.celular}",${r.tec},"${r.falla}",${r.duracion},"${o}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `Reporte_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
+    link.click();
+});
+
+// Iniciar
 initDash();
