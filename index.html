@@ -123,11 +123,24 @@
     <div class="key-bar">
         <span class="key-label">Claves Rápidas:</span>
         <div class="key-buttons">
+            <button class="btn-key refres" id="btn_key_mod">Modificar</button>
             <button class="btn-key" id="btn_key_elite">Elite</button>
             <button class="btn-key" id="btn_key_fenix">Fenix</button>
             <button class="btn-key" id="btn_key_pwd">PWD</button>
-            <button class="btn-key refres" id="btn_key_refres">refres</button>
-            <button class="btn-key mod" id="btn_key_mod">Modificar</button>
+            
+            <button class="btn-key mod" id="btn_key_refres">Refres</button>
+        </div>
+    </div>
+
+    <div id="timer_panel" class="timer-panel hidden">
+        <div class="timer-box">
+            <span class="timer-label">📞 Duración Total</span>
+            <span id="display_total" class="timer-value">00:00</span>
+        </div>
+        <div class="timer-divider"></div>
+        <div class="timer-box">
+            <span class="timer-label">🔔 Próximo Aviso</span>
+            <span id="display_countdown" class="timer-value countdown">00:00</span>
         </div>
     </div>
 
@@ -146,17 +159,7 @@
 
 </div>
 
-<div id="timer_panel" class="timer-panel hidden">
-    <div class="timer-box">
-        <span class="timer-label">📞 Duración Total</span>
-        <span id="display_total" class="timer-value">00:00</span>
-    </div>
-    <div class="timer-divider"></div>
-    <div class="timer-box">
-        <span class="timer-label">🔔 Próximo Aviso</span>
-        <span id="display_countdown" class="timer-value countdown">00:00</span>
-    </div>
-</div>
+
 
 <div id="modal_claves" class="modal-overlay hidden">
     <div class="modal-content">
