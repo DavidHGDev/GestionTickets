@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARCHIVO: js/app.js - CONTROLADOR PRINCIPAL OPTIMIZADO
+   ARCHIVO: js/app.js - CONTROLADOR PRINCIPAL (Con showPicker Activo)
    ========================================================================== */
 
 /* 1. CONFIGURACIÓN Y DATOS */
@@ -20,10 +20,10 @@ const opcionesNaturaleza = {
 
 /* 2. VARIABLES DE ESTADO */
 let horaInicioLlamada = null; 
-let timerRetoma = null;          // ID del intervalo
-let retomaStartTime = null;      // Momento exacto donde inició el ciclo actual
-let proximaAlarmaSegundos = 45;  // Objetivo en segundos para la próxima alarma
-let enCicloRetoma = false;       // Bandera para saber si ya pasamos la etapa de 45s
+let timerRetoma = null;          
+let retomaStartTime = null;      
+let proximaAlarmaSegundos = 45;  
+let enCicloRetoma = false;       
 
 let misClaves = {
     'btn_key_elite': 'Elite123*', 
@@ -31,11 +31,23 @@ let misClaves = {
     'btn_key_pwd': 'AdminPassword'
 };
 
-/* 3. ELEMENTOS DEL DOM (Definidos al inicio para evitar errores) */
+/* 3. ELEMENTOS DEL DOM */
 const callIdInput = document.getElementById('call_id');
 const clienteInput = document.getElementById('customer_name');
 const cedulaInput = document.getElementById('customer_doc');
-const celularInput = document.getElementById('customer_phone'); // Importante para que guarde
+const celularInput = document.getElementById('customer_phone'); 
+
+// --- CAMPOS ---
+const smnetUnitariaInput = document.getElementById('smnet_unitaria');
+const horarioFallaInput = document.getElementById('horario_falla');
+const soporteVelocidadInput = document.getElementById('soporte_velocidad'); 
+const checkPortal = document.getElementById('check_portal_cautivo');
+const checkNotif = document.getElementById('check_notificacion');
+
+// --- ALERTA DE VENTA ---
+const checkVenta = document.getElementById('check_venta_ofrecida');
+const ventaContainer = document.getElementById('venta_container');
+
 const techInput = document.getElementById('tech_input');
 const prodInput = document.getElementById('prod_input');
 const failInput = document.getElementById('fail_input');
@@ -44,6 +56,7 @@ const obsTextarea = document.getElementById('observaciones');
 const techList = document.getElementById('tech_options');
 const prodList = document.getElementById('prod_options');
 const failList = document.getElementById('fail_options');
+const horarioList = document.getElementById('horario_options');
 
 const radiosB2B = document.querySelectorAll('input[name="b2b_option"]');
 const panelB2B = document.getElementById('b2b_panel');
@@ -63,18 +76,15 @@ if (btnData) {
 
 /* =========================================
    5. LÓGICA DE AUDIO (SINGLETON)
-   Soluciona el problema de que deje de sonar
    ========================================= */
-let audioCtx = null; // Contexto global único
+let audioCtx = null; 
 
 function sonarAlertaRetoma() {
-    // Inicializar contexto solo si no existe
     if (!audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) audioCtx = new AudioContext();
     }
     
-    // Si el navegador suspendió el audio (ahorro de energía), reanudarlo
     if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
@@ -87,7 +97,6 @@ function sonarAlertaRetoma() {
     oscillator.type = 'sine'; 
     oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
     
-    // Fade in / Fade out para que sea suave
     gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
     gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.1); 
     gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
@@ -100,77 +109,80 @@ function sonarAlertaRetoma() {
 }
 
 /* =========================================
-   GESTIÓN DEL TIMER (ESTRATEGIA DE REINICIO DE CICLO)
+   GESTIÓN DEL TIMER
    ========================================= */
 function gestionarTimerRetoma(esReinicioManual = false) {
     if (timerPanel) timerPanel.classList.remove('hidden');
     
-    // 1. LIMPIEZA: Matar intervalo anterior
     if (timerRetoma) {
         clearInterval(timerRetoma);
         timerRetoma = null;
     }
 
-    // 2. CONFIGURACIÓN INICIAL
-    // 'retomaStartTime' es el punto cero del ciclo ACTUAL (no de toda la llamada)
     retomaStartTime = Date.now(); 
-    
-    // Si es la primera vez que se llama, definimos el inicio total
     if (!horaInicioLlamada) horaInicioLlamada = Date.now();
 
-    // 3. DEFINIR LA META DE ESTE CICLO
-    // Si es manual (botón) -> 115s. Si es automático (input) -> 45s.
     proximaAlarmaSegundos = esReinicioManual ? 115 : 45;
 
-    // 4. INICIAR INTERVALO
     timerRetoma = setInterval(() => {
         const ahora = Date.now();
-        
-        // A. TIEMPO TOTAL (Este nunca se reinicia, muestra la duración real de la llamada)
         const segundosTotal = Math.floor((ahora - horaInicioLlamada) / 1000);
+        
+        // 1. Timer Visual Total
         if (displayTotal) displayTotal.textContent = formatoMMSS(segundosTotal);
 
-        // B. TIEMPO DEL CICLO ACTUAL (Este se reinicia con cada alarma)
-        const segundosCiclo = Math.floor((ahora - retomaStartTime) / 1000);
+        // 2. Colores Venta
+        actualizarColorVenta(segundosTotal);
 
-        // C. CÁLCULO DE CUENTA REGRESIVA
+        // 3. Timer Ciclo
+        const segundosCiclo = Math.floor((ahora - retomaStartTime) / 1000);
         let falta = proximaAlarmaSegundos - segundosCiclo;
-        
-        // Corrección visual para que no muestre negativos por milisegundos
         if (falta < 0) falta = 0; 
 
-        // Actualizar UI
         if (displayCountdown) {
             displayCountdown.textContent = formatoMMSS(falta);
-            
-            // Alerta visual (Rojo) si faltan 10 segundos o menos
             if (falta <= 10) displayCountdown.classList.add('danger');
             else displayCountdown.classList.remove('danger');
         }
 
-        // D. DISPARO DE ALARMA
         if (falta === 0) {
             sonarAlertaRetoma();
-            
-            // === AQUÍ ESTÁ EL ARREGLO ===
-            // En vez de sumar tiempo, REINICIAMOS el punto de partida.
-            // Esto evita errores matemáticos en llamadas largas.
             retomaStartTime = Date.now(); 
-            
-            // La próxima meta SIEMPRE será 115s después de una alarma
             proximaAlarmaSegundos = 115;
         }
 
     }, 1000);
 }
 
+function actualizarColorVenta(segundos) {
+    if (!ventaContainer || !checkVenta) return;
+
+    if (checkVenta.checked) {
+        ventaContainer.className = 'sale-alert-box sale-success';
+        return;
+    }
+
+    ventaContainer.className = 'sale-alert-box';
+
+    if (segundos > 180) { // +3 min: Rojo
+        ventaContainer.classList.add('sale-danger');
+    } else if (segundos > 60) { // +1 min: Amarillo
+        ventaContainer.classList.add('sale-warning');
+    }
+}
+
+if (checkVenta) {
+    checkVenta.addEventListener('change', () => {
+        const segundos = horaInicioLlamada ? Math.floor((Date.now() - horaInicioLlamada) / 1000) : 0;
+        actualizarColorVenta(segundos);
+    });
+}
+
 // Botón de Retoma Manual
 if (btnRefres) {
     btnRefres.addEventListener('click', () => {
         if (horaInicioLlamada !== null) {
-            gestionarTimerRetoma(true); // true = Reinicio Manual a 115s
-            
-            // Feedback visual
+            gestionarTimerRetoma(true); 
             const original = btnRefres.textContent;
             btnRefres.textContent = "⏱️";
             btnRefres.style.backgroundColor = "#dcfce7"; 
@@ -182,18 +194,17 @@ if (btnRefres) {
     });
 }
 
-// Inicio Automático al escribir ID
+// Inicio Automático
 if (callIdInput) {
     callIdInput.addEventListener('input', () => {
-        // Solo inicia si NO hay timer corriendo y hay texto
         if (callIdInput.value.trim().length > 0 && timerRetoma === null) {
-            gestionarTimerRetoma(false); // false = Inicio Automático a 45s
+            gestionarTimerRetoma(false); 
         }
     });
 }
 
 /* =========================================
-   7. FUNCIONES DE UTILIDAD (Datalists, Formatos)
+   7. FUNCIONES DE UTILIDAD
    ========================================= */
 function llenarDatalist(datalistElement, arrayOpciones) {
     if (!datalistElement) return;
@@ -230,19 +241,32 @@ if (obsTextarea) {
 }
 
 /* =========================================
-   8. INPUTS INTELIGENTES (AUTOCOMPLETE)
+   8. INPUTS INTELIGENTES (USANDO showPicker)
    ========================================= */
 function configurarInputAvanzado(inputElement, dataListId) {
     if (!inputElement) return;
     const label = inputElement.nextElementSibling;
 
+    // --- ACTIVAR showPicker() EN CLICK ---
+    inputElement.addEventListener('click', function() {
+        if (typeof this.showPicker === 'function') {
+            try {
+                this.showPicker();
+            } catch (error) {
+                console.log("showPicker no soportado o bloqueado");
+            }
+        }
+    });
+
     inputElement.addEventListener('focus', function() {
         this.dataset.oldValue = this.value; 
+        
         if (this.value && label) {
             if (!label.dataset.originalText) label.dataset.originalText = label.innerText; 
             label.innerText = this.value; 
             label.style.color = "#ef4444"; 
         }
+        
         this.value = ''; 
     });
 
@@ -279,6 +303,8 @@ function configurarInputAvanzado(inputElement, dataListId) {
 configurarInputAvanzado(techInput, 'tech_options');
 configurarInputAvanzado(prodInput, 'prod_options');
 configurarInputAvanzado(failInput, 'fail_options');
+configurarInputAvanzado(horarioFallaInput, 'horario_options');
+configurarInputAvanzado(soporteVelocidadInput, 'yes_no_options');
 
 function actualizarFallas(producto) {
     if (!opcionesNaturaleza[producto]) {
@@ -411,7 +437,7 @@ if (radiosB2B && radiosB2B.length > 0) {
    12. ACCIONES (COPIAR, GUARDAR, IMPORTAR, EXPORTAR)
    ========================================= */
 
-// COPIAR
+// COPIAR DATOS
 const btnCopy = document.getElementById('btn_copy');
 if (btnCopy) {
     btnCopy.addEventListener('click', () => {
@@ -421,26 +447,56 @@ if (btnCopy) {
         // Validación básica
         if (!idValor || !obsValor) { alert("⚠️ Faltan datos."); return; }
 
-        const addField = (lbl, v) => (v && v.trim() !== "") ? `${lbl}: ${v.trim()}, ` : "";
+        const addField = (lbl, v) => (v && v.trim() !== "") ? `${lbl}: ${v.trim()};` : "";
 
-        let plantilla = `Observaciones: ${obsValor}, Id de la llamada: ${idValor}, `;
+        // 1. Observaciones
+        let plantilla = `Observaciones: ${obsValor};`;
+        
+        // 2. ID Llamada
+        plantilla += `ID de la llamada: ${idValor};`;
 
-        plantilla += addField("SMNET", document.getElementById('prueba_smnet')?.value);
+        // 3 y 4. SMNET
+        const smnetInt = document.getElementById('prueba_smnet')?.value;
+        const smnetUnit = smnetUnitariaInput?.value;
+        plantilla += addField("ID prueba integrada SMNET", smnetInt);
+        plantilla += addField("ID prueba unitaria SMNET", smnetUnit);
+
+        // 5, 6 y 7. Tecnología, Servicio, Dolor Puntual
         plantilla += addField("Tecnología", techInput?.value);
-        plantilla += addField("Tipo de servicio", prodInput?.value);
-        plantilla += addField("Naturaleza", failInput?.value);
-        plantilla += addField("Documento", cedulaInput?.value);
-        plantilla += addField("Celular", celularInput?.value); // Usa la variable definida arriba
+        plantilla += addField("Servicio", prodInput?.value); 
+        plantilla += addField("Dolor puntual", failInput?.value);
+        
+        // 8. Horario
+        plantilla += addField("Horario del evento o en donde más falla", horarioFallaInput?.value);
+        
+        // 9. Soporte Velocidad
+        const valVel = soporteVelocidadInput?.value || "Si";
+        plantilla += `El equipo del usuario soporta la velocidad contratada: ${valVel};`;
 
-        const isB2B = document.querySelector('input[name="b2b_option"]:checked')?.value === 'si';
-        if (isB2B) {
-            plantilla += " Horario B2B activo, ";
-            plantilla += addField("Atiende", document.getElementById('b2b_contact')?.value);
-            plantilla += addField("Días", document.getElementById('b2b_days')?.value);
-            plantilla += addField("Horario", document.getElementById('b2b_schedule')?.value);
+        // 10. Portal Cautivo
+        if(checkPortal && checkPortal.checked) {
+            plantilla += "Se verifica portal Cautivo OK ;";
         }
 
-        plantilla = plantilla.trim().replace(/,$/, "");
+        // 11. B2B
+        const isB2B = document.querySelector('input[name="b2b_option"]:checked')?.value === 'si';
+        if (!isB2B) {
+            plantilla += "No aplica horario B2B;";
+        } else {
+            plantilla += "Aplica horario B2B (";
+            plantilla += `Atiende: ${document.getElementById('b2b_contact')?.value || '-'}, `;
+            plantilla += `Días: ${document.getElementById('b2b_days')?.value || '-'}, `;
+            plantilla += `Horario: ${document.getElementById('b2b_schedule')?.value || '-'}`;
+            plantilla += ");";
+        }
+
+        // EXTRAS
+        plantilla += addField("Documento", cedulaInput?.value);
+        plantilla += addField("Celular", celularInput?.value);
+        
+        if(checkNotif && checkNotif.checked) plantilla += "Notificación Electrónica: Confirmada;";
+
+        plantilla = plantilla.trim();
 
         navigator.clipboard.writeText(plantilla).then(() => {
             const original = btnCopy.textContent;
@@ -468,6 +524,9 @@ if (btnReset) {
         const fin = Date.now();
         const duracionRaw = (horaInicioLlamada) ? (fin - horaInicioLlamada) / 1000 : 0;
         
+        // LEER ESTADO DE VENTA OFRECIDA
+        const ventaOfrecida = checkVenta ? checkVenta.checked : false;
+
         const registro = {
             id_unico: Date.now(),
             fecha: new Date().toLocaleDateString(),
@@ -475,8 +534,19 @@ if (btnReset) {
             id: idValor,
             cliente: clienteInput?.value || '',
             cedula: cedulaInput?.value || '',
-            celular: celularInput?.value || '', // Ahora sí se guarda
+            celular: celularInput?.value || '',
             smnet: document.getElementById('prueba_smnet')?.value || '',
+            
+            // Campos
+            smnet_uni: smnetUnitariaInput?.value || '',
+            horario_falla: horarioFallaInput?.value || '',
+            soporta_vel: soporteVelocidadInput?.value || 'Si',
+            portal_cautivo: checkPortal?.checked || false,
+            notif_elect: checkNotif?.checked || false,
+            
+            // NUEVO CAMPO BD
+            ofrecio_venta: ventaOfrecida,
+
             tec: techInput.value,
             prod: prodInput.value,
             falla: failInput.value,
@@ -491,7 +561,7 @@ if (btnReset) {
 
         try {
             await baseDatos.guardar('historial', registro);
-            console.log("💾 Guardado OK");
+            console.log("💾 Guardado OK - Venta Ofrecida:", ventaOfrecida);
             await actualizarMetricasDesdeDB();
         } catch (error) { alert("Error DB: " + error); }
         
@@ -499,9 +569,20 @@ if (btnReset) {
         horaInicioLlamada = null;
         inicioCicloAlarma = null;
 
-        document.querySelectorAll('input:not([type="radio"])').forEach(i => i.value = '');
+        document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"])').forEach(i => i.value = '');
         document.querySelectorAll('textarea').forEach(t => { t.value = ''; t.style.height = 'auto'; });
         
+        // Resetear campos
+        if(soporteVelocidadInput) soporteVelocidadInput.value = 'Si';
+        if(checkPortal) checkPortal.checked = false;
+        if(checkNotif) checkNotif.checked = false;
+        
+        // Resetear Venta
+        if(checkVenta) {
+            checkVenta.checked = false;
+            if(ventaContainer) ventaContainer.className = 'sale-alert-box';
+        }
+
         if(prodList) prodList.innerHTML = '';
         if(failList) failList.innerHTML = '';
         if(panelB2B) panelB2B.classList.add('hidden');
@@ -524,12 +605,22 @@ if (btnExport) {
         const historial = await baseDatos.leerTodo('historial');
         if (historial.length === 0) { alert("⚠️ No hay datos."); return; }
         const fechaHoy = new Date().toLocaleDateString().replace(/\//g, '-');
-        let csv = "Fecha,Hora,ID,Cliente,Celular,Tecnologia,Servicio,Falla,Duracion,Observaciones\n";
+        
+        // CSV actualizado con campo Venta
+        let csv = "Fecha,Hora,ID,Cliente,Celular,Venta_Ofrecida,SMNET_Unit,Soporta_Vel,Portal,Notif,Tecnologia,Servicio,Falla,Horario_Falla,Duracion,Observaciones\n";
+        
         historial.forEach(r => {
             const obsClean = (r.obs || '').replace(/"/g, '""').replace(/(\r\n|\n|\r)/gm, " ");
             const dur = r.duracion ? r.duracion.toString().replace('.', ',') : '0';
             const cel = r.celular || '';
-            csv += `${r.fecha},${r.hora},${r.id},"${r.cliente}","${cel}",${r.tec},${r.prod},"${r.falla}",${dur},"${obsClean}"\n`;
+            const portal = r.portal_cautivo ? 'SI' : 'NO';
+            const notif = r.notif_elect ? 'SI' : 'NO';
+            const horario = r.horario_falla || '';
+            const smnetU = r.smnet_uni || '';
+            const sopVel = r.soporta_vel || 'Si';
+            const venta = r.ofrecio_venta ? 'SI' : 'NO';
+
+            csv += `${r.fecha},${r.hora},${r.id},"${r.cliente}","${cel}","${venta}","${smnetU}","${sopVel}","${portal}","${notif}",${r.tec},${r.prod},"${r.falla}","${horario}",${dur},"${obsClean}"\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");

@@ -1,262 +1,236 @@
 /* ==========================================================================
-   js/dashboard.js - VERSIÓN FINAL PRO
-   Funciones: Búsqueda inteligente, Conversor tiempo, Exportación JSON/CSV,
-              Acciones al inicio y Doble clic para copiar.
+   ARCHIVO: js/dashboard.js - CONTROLADOR DEL DASHBOARD (Con nuevos campos)
    ========================================================================== */
 
-// --- 1. REFERENCIAS DOM ---
-const tbody = document.getElementById('dashboard_body');
+document.addEventListener('DOMContentLoaded', async () => {
+    await baseDatos.iniciar();
+    console.log("✅ DB Conectada (Dashboard)");
+    cargarTabla();
+});
+
+// Elementos del DOM
+const tableBody = document.getElementById('dashboard_body');
 const txtSearch = document.getElementById('txt_search');
 const numLimit = document.getElementById('num_limit');
 const btnRefresh = document.getElementById('btn_refresh');
-const msgNoResults = document.getElementById('no_results');
-const btnExport = document.getElementById('btn_export_dash');
-const btnBackHome = document.getElementById('btn_back_home');
-const btnExportJson = document.getElementById('btn_export_json');
-const toast = document.getElementById('toast');
+const btnBack = document.getElementById('btn_back_home');
+const noResults = document.getElementById('no_results');
 
-// Elementos del Modal
+// Modal Elements
 const modal = document.getElementById('modal_edicion');
 const btnCloseX = document.getElementById('btn_close_modal_x');
 const btnCancel = document.getElementById('btn_cancel_edit');
 const btnSave = document.getElementById('btn_save_edit');
-const editObs = document.getElementById('edit_obs');
 
-// Campos de Tiempo (Calculadora)
-const editDuracion = document.getElementById('edit_duracion'); // Segundos
-const editMinutos = document.getElementById('edit_minutos');   // Minutos
+// Event Listeners
+if(btnRefresh) btnRefresh.addEventListener('click', cargarTabla);
+if(txtSearch) txtSearch.addEventListener('keyup', cargarTabla);
+if(numLimit) numLimit.addEventListener('change', cargarTabla);
+if(btnBack) btnBack.addEventListener('click', () => window.close()); // O window.location.href = 'index.html'
 
-// Datos en memoria
-let todosLosRegistros = [];
+if(btnCloseX) btnCloseX.addEventListener('click', cerrarModal);
+if(btnCancel) btnCancel.addEventListener('click', cerrarModal);
+if(btnSave) btnSave.addEventListener('click', guardarEdicion);
 
 /* =========================================
-   2. INICIALIZACIÓN
+   1. CARGAR DATOS EN LA TABLA
    ========================================= */
-async function initDash() {
+async function cargarTabla() {
     try {
-        await baseDatos.iniciar();
-        console.log("✅ DB Dashboard Ready");
-        await cargarDatos();
-        setupTimeConverters(); 
-    } catch (e) { console.error("Error al iniciar dashboard:", e); }
-}
+        const registros = await baseDatos.leerTodo('historial');
+        
+        // Ordenar: Más reciente primero
+        registros.sort((a, b) => b.id_unico - a.id_unico);
 
-async function cargarDatos() {
-    todosLosRegistros = await baseDatos.leerTodo('historial');
-    aplicarFiltros();
-}
+        // Filtrar
+        const busqueda = txtSearch.value.toLowerCase();
+        const filtrados = registros.filter(reg => {
+            const t = (str) => (str || '').toString().toLowerCase();
+            return t(reg.id).includes(busqueda) || 
+                   t(reg.cliente).includes(busqueda) || 
+                   t(reg.cedula).includes(busqueda);
+        });
 
-/* =========================================
-   3. FUNCIONES DE UTILIDAD (COPIAR)
-   ========================================= */
-function copiarRapido(texto) {
-    if (!texto || texto === '-') return;
-    navigator.clipboard.writeText(texto).then(() => {
-        if (toast) {
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
+        // Limitar cantidad
+        const limite = parseInt(numLimit.value) || 20;
+        const dataFinal = filtrados.slice(0, limite);
+
+        renderizarFilas(dataFinal);
+        
+        if (filtrados.length === 0) {
+            tableBody.innerHTML = '';
+            noResults.style.display = 'block';
+        } else {
+            noResults.style.display = 'none';
         }
-    });
-}
 
-/* =========================================
-   4. FILTRADO Y TABLA (ACCIONES AL INICIO)
-   ========================================= */
-function aplicarFiltros() {
-    const term = txtSearch.value.trim().toLowerCase();
-    const limit = parseInt(numLimit.value) || 20;
-
-    const filtrados = todosLosRegistros.filter(r => {
-        if (!term) return true;
-        const idDB = String(r.id || '').toLowerCase();
-        const clienteDB = String(r.cliente || '').toLowerCase();
-        const cedulaDB = String(r.cedula || '').toLowerCase();
-        const textoCompleto = `${idDB} ${clienteDB} ${cedulaDB}`;
-        return textoCompleto.includes(term);
-    });
-
-    if (filtrados.length === 0) {
-        tbody.innerHTML = '';
-        msgNoResults.style.display = 'block';
-        return;
+    } catch (error) {
+        console.error("Error cargando tabla:", error);
     }
-    msgNoResults.style.display = 'none';
-    pintarTabla(filtrados.slice(0, limit));
 }
 
-function pintarTabla(datos) {
-    tbody.innerHTML = '';
-    
+function renderizarFilas(datos) {
+    tableBody.innerHTML = '';
+
     datos.forEach(reg => {
         const tr = document.createElement('tr');
         
-        // El orden ahora es: Acciones, Fecha, ID, Observaciones, Cliente, Celular...
+        // Formateo de duración
+        const dur = reg.duracion ? `${reg.duracion}s` : '0s';
+        
+        // Limpieza de observaciones largas
+        const obsCorta = (reg.obs && reg.obs.length > 30) ? reg.obs.substring(0, 30) + '...' : reg.obs;
+
+        // Nuevos campos con manejo de nulos
+        const smnetU = reg.smnet_uni || '-';
+        const horario = reg.horario_falla || '-';
+        const soporte = reg.soporta_vel || '-';
+
         tr.innerHTML = `
-            <td style="text-align: center;">
-                <div class="action-btn-group">
-                    <button class="btn-action btn-edit" onclick="abrirEdicion(${reg.id_unico})" title="Modificar">✏️</button>
-                    <button class="btn-action btn-del" onclick="borrarRegistro(${reg.id_unico})" title="Eliminar">🗑️</button>
-                </div>
+            <td class="action-cell">
+                <button class="btn-icon edit" title="Editar" onclick="abrirModalEdicion(${reg.id_unico})">✏️</button>
+                <button class="btn-icon delete" title="Eliminar" onclick="eliminarRegistro(${reg.id_unico})">🗑️</button>
             </td>
-            <td style="font-size:0.85rem;">${reg.fecha}<br><span style="color:#94a3b8">${reg.hora}</span></td>
-            <td class="col-id" ondblclick="copiarRapido('${reg.id}')" title="Doble clic para copiar">${reg.id}</td>
+            <td>${reg.fecha}<br><small style="color:#64748b">${reg.hora}</small></td>
+            <td style="font-weight:bold; color:#1e3a8a;">${reg.id}</td>
+            <td>${reg.cliente || ''}</td>
+            <td>${reg.celular || ''}</td>
             
-            <td class="col-obs" ondblclick="copiarRapido('${reg.obs.replace(/'/g, "\\'")}')" title="Doble clic para copiar">${reg.obs}</td>
+            <td style="color:#059669;">${smnetU}</td>
+            <td style="font-size:0.85rem;">${horario}</td>
+            <td style="text-align:center;">${soporte}</td>
             
-            <td><b>${reg.cliente || '-'}</b></td>
-            <td>${reg.celular || '-'}</td>
-            <td>${reg.tec || '-'}</td>
-            <td>${reg.falla || '-'}</td>
-            <td class="col-duracion">${reg.duracion}s</td>
+            <td>${reg.tec}</td>
+            <td>${reg.falla}</td>
+            <td>${dur}</td>
         `;
-        tbody.appendChild(tr);
+        tableBody.appendChild(tr);
     });
 }
 
 /* =========================================
-   5. CONVERSORES DE TIEMPO
+   2. ELIMINAR REGISTRO
    ========================================= */
-function setupTimeConverters() {
-    if (editMinutos) {
-        editMinutos.addEventListener('input', () => {
-            const mins = parseFloat(editMinutos.value) || 0;
-            editDuracion.value = (mins * 60).toFixed(2);
-        });
-    }
-    if (editDuracion) {
-        editDuracion.addEventListener('input', () => {
-            const secs = parseFloat(editDuracion.value) || 0;
-            editMinutos.value = (secs / 60).toFixed(2);
-        });
-    }
-}
-
-/* =========================================
-   6. SISTEMA DE EDICIÓN (MODAL)
-   ========================================= */
-window.abrirEdicion = (idUnico) => {
-    const registro = todosLosRegistros.find(r => r.id_unico === idUnico);
-    if (!registro) return;
-
-    document.getElementById('edit_id_unico').value = registro.id_unico;
-    document.getElementById('edit_call_id').value = registro.id || '';
-    document.getElementById('edit_cliente').value = registro.cliente || '';
-    document.getElementById('edit_celular').value = registro.celular || '';
-    document.getElementById('edit_cedula').value = registro.cedula || '';
-    document.getElementById('edit_tec').value = registro.tec || '';
-    document.getElementById('edit_falla').value = registro.falla || '';
-    
-    const segundos = registro.duracion || 0;
-    editDuracion.value = segundos;
-    editMinutos.value = (segundos / 60).toFixed(2);
-
-    editObs.value = registro.obs || '';
-    ajustarAlturaModal();
-
-    modal.classList.add('active');
-};
-
-function cerrarModal() { modal.classList.remove('active'); }
-
-function ajustarAlturaModal() {
-    editObs.style.height = 'auto';
-    editObs.style.height = (editObs.scrollHeight) + 'px';
-}
-editObs.addEventListener('input', ajustarAlturaModal);
-
-btnSave.addEventListener('click', async () => {
-    const idUnico = parseFloat(document.getElementById('edit_id_unico').value);
-    const registroOriginal = todosLosRegistros.find(r => r.id_unico === idUnico);
-    if (!registroOriginal) return;
-
-    const registroActualizado = {
-        ...registroOriginal,
-        id: document.getElementById('edit_call_id').value,
-        cliente: document.getElementById('edit_cliente').value,
-        celular: document.getElementById('edit_celular').value,
-        cedula: document.getElementById('edit_cedula').value,
-        tec: document.getElementById('edit_tec').value,
-        falla: document.getElementById('edit_falla').value,
-        duracion: parseFloat(editDuracion.value) || 0,
-        obs: editObs.value
-    };
-
-    try {
-        await baseDatos.guardar('historial', registroActualizado);
-        cerrarModal();
-        await cargarDatos(); 
-        alert("✅ Registro actualizado correctamente.");
-    } catch (e) { alert("Error al guardar: " + e); }
-});
-
-btnCloseX.addEventListener('click', cerrarModal);
-btnCancel.addEventListener('click', cerrarModal);
-modal.addEventListener('click', (e) => { if (e.target === modal) cerrarModal(); });
-
-/* =========================================
-   7. EVENTOS GLOBALES Y EXPORTACIÓN
-   ========================================= */
-
-// Redirección Volver
-if (btnBackHome) {
-    btnBackHome.addEventListener('click', () => { window.location.href = 'index.html'; });
-}
-
-// Eliminar Registro
-window.borrarRegistro = async (idUnico) => {
+window.eliminarRegistro = async (idUnico) => {
     if (confirm("¿Estás seguro de eliminar este registro permanentemente?")) {
-        await baseDatos.eliminar('historial', idUnico);
-        await cargarDatos();
+        try {
+            await baseDatos.eliminar('historial', idUnico);
+            cargarTabla();
+            mostrarToast("Registro eliminado");
+        } catch (e) { alert("Error: " + e); }
     }
 };
 
-txtSearch.addEventListener('input', aplicarFiltros);
-numLimit.addEventListener('change', aplicarFiltros);
-btnRefresh.addEventListener('click', cargarDatos);
+/* =========================================
+   3. EDITAR REGISTRO (Lógica Modal)
+   ========================================= */
+window.abrirModalEdicion = async (idUnico) => {
+    try {
+        const reg = await baseDatos.leerUno('historial', idUnico);
+        if (!reg) return alert("Registro no encontrado");
 
-// Exportar a JSON
-if (btnExportJson) {
-    btnExportJson.addEventListener('click', () => {
-        if (!todosLosRegistros.length) return alert("⚠️ No hay datos para exportar.");
-        try {
-            const dataStr = JSON.stringify(todosLosRegistros, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
-            link.download = `Backup_Historial_${fecha}.json`;
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        } catch (error) { alert("❌ Error al generar JSON"); }
+        // Llenar inputs
+        document.getElementById('edit_id_unico').value = reg.id_unico;
+        document.getElementById('edit_call_id').value = reg.id || '';
+        document.getElementById('edit_cliente').value = reg.cliente || '';
+        document.getElementById('edit_celular').value = reg.celular || '';
+        document.getElementById('edit_cedula').value = reg.cedula || '';
+        
+        // Nuevos campos
+        document.getElementById('edit_smnet_uni').value = reg.smnet_uni || '';
+        document.getElementById('edit_horario').value = reg.horario_falla || '';
+        document.getElementById('edit_soporte').value = reg.soporta_vel || '';
+        
+        document.getElementById('edit_tec').value = reg.tec || '';
+        document.getElementById('edit_falla').value = reg.falla || '';
+        document.getElementById('edit_duracion').value = reg.duracion || 0;
+        document.getElementById('edit_obs').value = reg.obs || '';
+
+        modal.classList.add('active');
+    } catch (e) { console.error(e); }
+};
+
+function cerrarModal() {
+    modal.classList.remove('active');
+}
+
+async function guardarEdicion() {
+    const idUnico = Number(document.getElementById('edit_id_unico').value);
+    
+    try {
+        // Obtenemos el registro original para no perder datos como fecha/hora
+        const original = await baseDatos.leerUno('historial', idUnico);
+        
+        const actualizado = {
+            ...original, // Copia todo lo que tenía antes
+            id: document.getElementById('edit_call_id').value,
+            cliente: document.getElementById('edit_cliente').value,
+            celular: document.getElementById('edit_celular').value,
+            cedula: document.getElementById('edit_cedula').value,
+            
+            // Guardar nuevos campos
+            smnet_uni: document.getElementById('edit_smnet_uni').value,
+            horario_falla: document.getElementById('edit_horario').value,
+            soporta_vel: document.getElementById('edit_soporte').value,
+
+            tec: document.getElementById('edit_tec').value,
+            falla: document.getElementById('edit_falla').value,
+            duracion: Number(document.getElementById('edit_duracion').value),
+            obs: document.getElementById('edit_obs').value
+        };
+
+        await baseDatos.guardar('historial', actualizado);
+        cerrarModal();
+        cargarTabla();
+        mostrarToast("Cambios guardados");
+
+    } catch (e) { alert("Error guardando: " + e); }
+}
+
+/* =========================================
+   4. EXPORTAR CSV (Actualizado)
+   ========================================= */
+const btnExportDash = document.getElementById('btn_export_dash');
+if (btnExportDash) {
+    btnExportDash.addEventListener('click', async () => {
+        const registros = await baseDatos.leerTodo('historial');
+        if (registros.length === 0) return alert("Nada que exportar");
+
+        let csv = "Fecha,Hora,ID,Cliente,Celular,SMNET_Uni,Horario_Falla,Soporte_Vel,Tecnologia,Falla,Duracion,Observaciones\n";
+        
+        registros.forEach(r => {
+            const obs = (r.obs || '').replace(/"/g, '""').replace(/(\r\n|\n|\r)/gm, " ");
+            
+            // CSV Seguro
+            csv += `${r.fecha},${r.hora},${r.id},"${r.cliente}","${r.celular||''}","${r.smnet_uni||''}","${r.horario_falla||''}","${r.soporta_vel||''}",${r.tec},"${r.falla}",${r.duracion},"${obs}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Reporte_Tickets_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
+        link.click();
     });
 }
 
-// Exportar a CSV (Filtrado)
-btnExport.addEventListener('click', () => {
-    const term = txtSearch.value.trim().toLowerCase();
-    const exportar = todosLosRegistros.filter(r => {
-        if (!term) return true;
-        const texto = `${r.id} ${r.cliente} ${r.cedula || ''}`.toLowerCase();
-        return texto.includes(term);
+// Exportar JSON (Backup Completo)
+const btnExportJson = document.getElementById('btn_export_json');
+if(btnExportJson) {
+    btnExportJson.addEventListener('click', async () => {
+        const registros = await baseDatos.leerTodo('historial');
+        const jsonStr = JSON.stringify(registros, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `Backup_DB_${Date.now()}.json`;
+        link.click();
     });
+}
 
-    if (!exportar.length) return alert("Nada que exportar");
-
-    let csv = "Fecha,Hora,ID,Cliente,Celular,Tec,Servicio,Falla,Duracion,Obs\n";
-    exportar.forEach(r => {
-        const o = (r.obs || '').replace(/"/g, '""').replace(/(\r\n|\n|\r)/gm, " ");
-        csv += `${r.fecha},${r.hora},${r.id},"${r.cliente}","${r.celular}",${r.tec},${r.prod || '-'},"${r.falla}",${r.duracion},"${o}"\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Reporte_Filtrado_${new Date().toLocaleDateString().replace(/\//g,'-')}.csv`;
-    link.click();
-});
-
-// Iniciar aplicación
-initDash();
+// Utilidad Toast
+function mostrarToast(mensaje) {
+    const toast = document.getElementById('toast');
+    toast.textContent = "✅ " + mensaje;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}

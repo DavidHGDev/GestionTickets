@@ -5,6 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Tickets PRO</title>
     <link rel="stylesheet" href="css/style.css">
+    
+    <style>
+        .sale-alert-box {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: bold;
+            transition: all 0.5s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
+        .sale-alert-box input[type="checkbox"] {
+            transform: scale(1.5);
+            cursor: pointer;
+        }
+
+        .sale-warning {
+            background-color: #fef9c3 !important;
+            border-color: #eab308 !important;
+            color: #854d0e !important;
+            animation: pulse-border 2s infinite;
+        }
+
+        .sale-danger {
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
+            color: #991b1b !important;
+            animation: pulse-bg 1.5s infinite;
+        }
+
+        .sale-success {
+            background-color: #dcfce7 !important;
+            border-color: #22c55e !important;
+            color: #166534 !important;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(234, 179, 8, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+        }
+        @keyframes pulse-bg {
+            0% { background-color: #fee2e2; }
+            50% { background-color: #fecaca; }
+            100% { background-color: #fee2e2; }
+        }
+    </style>
 </head>
 <body>
 
@@ -12,7 +67,6 @@
     
     <nav class="top-toolbar">
         <a href="templates.html" class="tool-btn" title="Ir a Plantillas" target="_blank">Plant</a>
-        
         <a href="data.html" class="tool-btn" target="_blank">📊Data</a>
         <button class="tool-btn" id="btn_export" title="Descargar reporte Excel/CSV">Exportar</button>
         <button class="tool-btn" id="btn_clear_data" title="Borrar Historial" style="color: #ef4444;">🗑️ Borrar</button>
@@ -39,12 +93,19 @@
             <label for="customer_doc">Documento</label>
         </div>
         <div class="floating-group">
-            <input type="text" id="prueba_smnet" placeholder=" " autocomplete="off">
-            <label for="prueba_smnet">SMNET</label>
-        </div>
-        <div class="floating-group">
             <input type="tel" id="customer_phone" placeholder=" " autocomplete="off">
             <label for="customer_phone">Teléfono</label>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="floating-group">
+            <input type="text" id="prueba_smnet" placeholder=" " autocomplete="off">
+            <label for="prueba_smnet">ID SMNET Integrada</label>
+        </div>
+        <div class="floating-group">
+            <input type="text" id="smnet_unitaria" placeholder=" " autocomplete="off">
+            <label for="smnet_unitaria">ID SMNET Unitaria</label>
         </div>
     </div>
 
@@ -61,6 +122,30 @@
             <datalist id="prod_options"></datalist> 
         </div>
 
+        <div class="floating-group">
+            <input type="text" id="horario_falla" list="horario_options" placeholder=" " autocomplete="off">
+            <label for="horario_falla">Horario Falla Recurrente</label>
+            <datalist id="horario_options">
+                <option value="06:00 – 10:00">
+                <option value="10:00 – 14:00">
+                <option value="14:00 – 18:00">
+                <option value="18:00 – 22:00">
+                <option value="22:00 – 00:00">
+                <option value="Todo el día">
+            </datalist>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="floating-group">
+            <input type="text" id="soporte_velocidad" list="yes_no_options" value="Si" placeholder=" " autocomplete="off">
+            <label for="soporte_velocidad">¿Equipo Soporta Velocidad?</label>
+            <datalist id="yes_no_options">
+                <option value="Si">
+                <option value="No">
+            </datalist>
+        </div>
+
         <div class="floating-group wide">
             <input type="text" id="fail_input" list="fail_options" placeholder=" " autocomplete="off">
             <label for="fail_input">Falla Reportada</label>
@@ -68,9 +153,26 @@
         </div>
     </div>
 
+    <div class="row" style="justify-content: flex-start; gap: 20px; margin-top: -5px; margin-bottom: 10px;">
+        <div class="checkbox-wrapper">
+            <input type="checkbox" id="check_portal_cautivo">
+            <label for="check_portal_cautivo">Verifico Portal Cautivo</label>
+        </div>
+
+        <div class="checkbox-wrapper">
+            <input type="checkbox" id="check_notificacion">
+            <label for="check_notificacion">Notif. Electrónica Confirmada</label>
+        </div>
+    </div>
+
     <div class="floating-group">
         <textarea id="observaciones" placeholder=" " spellcheck="true"></textarea>
         <label for="observaciones">Observaciones</label>
+    </div>
+
+    <div id="venta_container" class="sale-alert-box">
+        <input type="checkbox" id="check_venta_ofrecida">
+        <label for="check_venta_ofrecida" style="cursor: pointer;">💰 ¿Ofreciste Venta / Portabilidad?</label>
     </div>
 
     <div class="actions">
@@ -158,8 +260,6 @@
     </div>
 
 </div>
-
-
 
 <div id="modal_claves" class="modal-overlay hidden">
     <div class="modal-content">
