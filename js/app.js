@@ -1,15 +1,14 @@
 /* ==========================================================================
-   ARCHIVO: js/app.js - CONTROLADOR PRINCIPAL (Con showPicker Activo)
+   ARCHIVO: js/app.js - CONTROLADOR FINAL (AHT ACTIVO)
    ========================================================================== */
 
-/* 1. CONFIGURACIÓN Y DATOS */
+/* 1. DATOS */
 const opcionesTiposervicio = {
     'HFC': ['Internet', 'Telefonía', 'TV_Digital', 'One_TV_2.0'],
     'GPON': ['Internet', 'IPTV', 'Telefonía', 'One_TV_2.0'],
     'REDCO': ['Internet', 'Telefonía', 'TV_Digital'],
     'ADSL': ['Internet', 'IPTV', 'Telefonía', 'One_TV_2.0']
 };
-
 const opcionesNaturaleza = {
     'Internet': ['No navega', 'Navegación Lenta', 'Servicio Intermitente', 'Problemas WiFi', 'Configuracion WIFI', 'Cambio de Clave'],
     'Telefonía': ['No funciona línea', 'Servicio Intermitente', 'Mala Calidad Voz', 'Entrecortada', 'No salen/entran llamadas', 'Deco no enciende'],
@@ -18,670 +17,320 @@ const opcionesNaturaleza = {
     'One_TV_2.0': ['Sin señal', 'DRM falló', 'Imagen congelada', 'Error de descarga', 'Comando de voz', 'App One TV falla']
 };
 
-/* 2. VARIABLES DE ESTADO */
+/* 2. VARIABLES */
 let horaInicioLlamada = null; 
 let timerRetoma = null;          
 let retomaStartTime = null;      
 let proximaAlarmaSegundos = 45;  
-let enCicloRetoma = false;       
+let tipoServicioActual = null;
+let misClaves = { elite: '', fenix: '', red: '', wts: '' };
 
-let misClaves = {
-    'btn_key_elite': 'Elite123*', 
-    'btn_key_fenix': 'Fenix2024!',
-    'btn_key_pwd': 'AdminPassword'
+/* 3. ELEMENTOS DOM */
+const els = {
+    id: document.getElementById('call_id'),
+    cliente: document.getElementById('customer_name'),
+    doc: document.getElementById('customer_doc'),
+    cel: document.getElementById('customer_phone'),
+    smnetInt: document.getElementById('prueba_smnet'),
+    smnetUnit: document.getElementById('smnet_unitaria'),
+    tech: document.getElementById('tech_input'),
+    prod: document.getElementById('prod_input'),
+    fail: document.getElementById('fail_input'),
+    horario: document.getElementById('horario_falla'),
+    obs: document.getElementById('observaciones'),
+    
+    // Paneles
+    pNet: document.getElementById('panel_internet'),
+    pTv: document.getElementById('panel_tv'),
+    soporteVel: document.getElementById('soporte_velocidad'),
+    tvQty: document.getElementById('tv_quantity'),
+    tvCont: document.getElementById('tv_serials_container'),
+    
+    // Checks & Toggles
+    portal: document.getElementById('check_portal_cautivo'),
+    toggleNotif: document.getElementById('btn_toggle_notif'),
+    checkNotif: document.getElementById('check_notif_db'),
+    toggleVenta: document.getElementById('btn_toggle_venta'),
+    checkVenta: document.getElementById('check_venta_db'),
+    
+    // Listas
+    lTech: document.getElementById('tech_options'),
+    lProd: document.getElementById('prod_options'),
+    lFail: document.getElementById('fail_options'),
+    
+    // B2B Main
+    b2bRadios: document.querySelectorAll('input[name="b2b_option"]'),
+    b2bPanel: document.getElementById('b2b_panel'),
+    b2bContact: document.getElementById('b2b_contact'),
+    b2bPhone: document.getElementById('b2b_phone'),
+    b2bDays: document.getElementById('b2b_days'),
+    b2bStart: document.getElementById('b2b_start'),
+    b2bEnd: document.getElementById('b2b_end'),
+    
+    // B2B Subs
+    pSat: document.getElementById('b2b_sat_panel'),
+    cSat: document.getElementById('check_sat_diff'),
+    iSat: document.getElementById('sat_inputs'),
+    pSun: document.getElementById('b2b_sun_panel'),
+    cSun: document.getElementById('check_sun_diff'),
+    iSun: document.getElementById('sun_inputs'),
+    permisoRadios: document.querySelectorAll('input[name="permiso_opt"]'),
+    permisoPanel: document.getElementById('permiso_input_panel'),
+    permisoTxt: document.getElementById('b2b_permiso_txt'),
+
+    // Timer & Stats (AHT)
+    timerPanel: document.getElementById('timer_panel'),
+    dispTotal: document.getElementById('display_total'),
+    dispCount: document.getElementById('display_countdown'),
+    btnRefres: document.getElementById('btn_key_refres'),
+    ahtDay: document.getElementById('aht_daily_display'),
+    ahtMonth: document.getElementById('aht_monthly_display'),
+
+    // Modal Claves
+    modal: document.getElementById('modal_claves'),
+    btnMod: document.getElementById('btn_key_mod'),
+    btnCancelMod: document.getElementById('btn_cancelar_modal'),
+    btnSaveMod: document.getElementById('btn_guardar_modal'),
+    inElite: document.getElementById('edit_key_elite'),
+    inFenix: document.getElementById('edit_key_fenix'),
+    inRed: document.getElementById('edit_key_red'),
+    inWts: document.getElementById('edit_key_wts'),
+    
+    // Botones Keys
+    kElite: document.getElementById('btn_key_elite'),
+    kFenix: document.getElementById('btn_key_fenix'),
+    kRed: document.getElementById('btn_key_red'),
+    kWts: document.getElementById('btn_key_wts')
 };
 
-/* 3. ELEMENTOS DEL DOM */
-const callIdInput = document.getElementById('call_id');
-const clienteInput = document.getElementById('customer_name');
-const cedulaInput = document.getElementById('customer_doc');
-const celularInput = document.getElementById('customer_phone'); 
-
-// --- CAMPOS ---
-const smnetUnitariaInput = document.getElementById('smnet_unitaria');
-const horarioFallaInput = document.getElementById('horario_falla');
-const soporteVelocidadInput = document.getElementById('soporte_velocidad'); 
-const checkPortal = document.getElementById('check_portal_cautivo');
-const checkNotif = document.getElementById('check_notificacion');
-
-// --- ALERTA DE VENTA ---
-const checkVenta = document.getElementById('check_venta_ofrecida');
-const ventaContainer = document.getElementById('venta_container');
-
-const techInput = document.getElementById('tech_input');
-const prodInput = document.getElementById('prod_input');
-const failInput = document.getElementById('fail_input');
-const obsTextarea = document.getElementById('observaciones');
-
-const techList = document.getElementById('tech_options');
-const prodList = document.getElementById('prod_options');
-const failList = document.getElementById('fail_options');
-const horarioList = document.getElementById('horario_options');
-
-const radiosB2B = document.querySelectorAll('input[name="b2b_option"]');
-const panelB2B = document.getElementById('b2b_panel');
-
-const displayTotal = document.getElementById('display_total');
-const displayCountdown = document.getElementById('display_countdown');
-const timerPanel = document.getElementById('timer_panel');
-const btnRefres = document.getElementById('btn_key_refres');
-
-/* 4. NAVEGACIÓN */
-const btnData = document.getElementById('btn_data');
-if (btnData) {
-    btnData.addEventListener('click', () => {
-        window.open('data.html', '_blank');
+/* 4. UX CONFIG */
+document.querySelectorAll('.clear-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault(); const input = btn.previousElementSibling.querySelector('input');
+        if (input) { 
+            input.value = ''; input.focus(); 
+            input.dispatchEvent(new Event('change')); input.dispatchEvent(new Event('input')); 
+            if (typeof input.showPicker === 'function') { setTimeout(() => { try { input.showPicker(); } catch(err){} }, 50); }
+        }
     });
+});
+els.obs.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
+
+function setupToggle(btn, checkbox) {
+    if(!btn || !checkbox) return;
+    checkbox.addEventListener('change', () => { if(checkbox.checked) btn.classList.add('active'); else btn.classList.remove('active'); });
 }
+setupToggle(els.toggleNotif, els.checkNotif); setupToggle(els.toggleVenta, els.checkVenta);
 
-/* =========================================
-   5. LÓGICA DE AUDIO (SINGLETON)
-   ========================================= */
-let audioCtx = null; 
-
-function sonarAlertaRetoma() {
-    if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) audioCtx = new AudioContext();
-    }
-    
-    if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-
-    if (!audioCtx) return;
-
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-
-    oscillator.type = 'sine'; 
-    oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
-    
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.1); 
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 1.5);
+function setupInput(inp) {
+    if(!inp) return;
+    inp.addEventListener('click', function() { if (typeof this.showPicker === 'function') { try { this.showPicker(); } catch(e){} } });
 }
+[els.tech, els.prod, els.fail, els.horario, els.b2bDays, els.b2bStart, els.b2bEnd].forEach(setupInput);
 
-/* =========================================
-   GESTIÓN DEL TIMER
-   ========================================= */
-function gestionarTimerRetoma(esReinicioManual = false) {
-    if (timerPanel) timerPanel.classList.remove('hidden');
-    
-    if (timerRetoma) {
-        clearInterval(timerRetoma);
-        timerRetoma = null;
+/* 5. CASCADA INTELIGENTE */
+function fillList(list, arr) { list.innerHTML = ''; arr.forEach(v => { const o = document.createElement('option'); o.value = v; list.appendChild(o); }); }
+
+els.tech.addEventListener('change', (e) => {
+    const s = opcionesTiposervicio[e.target.value];
+    els.prod.value = ''; els.fail.value = ''; els.lProd.innerHTML = ''; els.lFail.innerHTML = '';
+    if (s && s.length > 0) { fillList(els.lProd, s); els.prod.value = s[0]; updateProductChain(s[0]); }
+    togglePanels(els.prod.value);
+});
+function updateProductChain(prodName) { updateFail(prodName); togglePanels(prodName); }
+els.prod.addEventListener('change', (e) => { updateProductChain(e.target.value); });
+function updateFail(prod) {
+    els.fail.value = ''; els.lFail.innerHTML = '';
+    if(opcionesNaturaleza[prod] && opcionesNaturaleza[prod].length > 0) {
+        fillList(els.lFail, opcionesNaturaleza[prod]); els.fail.value = opcionesNaturaleza[prod][0];
     }
+}
+function togglePanels(prod) {
+    const p = (prod || '').toLowerCase();
+    els.pNet.classList.remove('visible'); els.pTv.classList.remove('visible');
+    tipoServicioActual = null;
+    setTimeout(() => {
+        if (p.includes('internet')) { tipoServicioActual = 'NET'; els.pNet.classList.add('visible'); } 
+        else if (p.includes('tv') || p.includes('iptv') || p.includes('one')) { tipoServicioActual = 'TV'; els.pTv.classList.add('visible'); }
+    }, 50);
+}
+els.tvQty.addEventListener('input', (e) => {
+    const n = parseInt(e.target.value) || 0; els.tvCont.innerHTML = '';
+    if(n > 0 && n <= 10) {
+        for(let i=1; i<=n; i++) {
+            const div = document.createElement('div'); div.className = 'floating-group'; div.style.marginBottom = '0';
+            div.innerHTML = `<input type="text" class="tv-serial" placeholder=" "><label>MAC/Serial ${i}</label>`;
+            els.tvCont.appendChild(div);
+        }
+    }
+});
 
-    retomaStartTime = Date.now(); 
-    if (!horaInicioLlamada) horaInicioLlamada = Date.now();
+/* 6. B2B CONDICIONAL */
+els.b2bRadios.forEach(r => r.addEventListener('change', (e) => {
+    if(e.target.value === 'si') els.b2bPanel.classList.add('visible'); else els.b2bPanel.classList.remove('visible');
+}));
 
-    proximaAlarmaSegundos = esReinicioManual ? 115 : 45;
+els.b2bDays.addEventListener('change', (e) => {
+    const val = e.target.value.toLowerCase();
+    els.pSat.classList.add('hidden'); els.pSun.classList.add('hidden');
+    if(val.includes('sábado')) els.pSat.classList.remove('hidden'); // Solo si menciona Sábado
+    if(val.includes('domingo')) { els.pSun.classList.remove('hidden'); els.pSat.classList.remove('hidden'); } // Domingo implica fin de semana completo usualmente
+});
 
+els.cSat.addEventListener('change', () => { if(els.cSat.checked) els.iSat.classList.remove('hidden'); else els.iSat.classList.add('hidden'); });
+els.cSun.addEventListener('change', () => { if(els.cSun.checked) els.iSun.classList.remove('hidden'); else els.iSun.classList.add('hidden'); });
+els.permisoRadios.forEach(r => r.addEventListener('change', (e) => {
+    if(e.target.value === 'si') els.permisoPanel.classList.remove('hidden'); else els.permisoPanel.classList.add('hidden');
+}));
+
+/* 7. CLAVES & MODAL */
+async function cargarClaves() { try { const c = await baseDatos.leerUno('configuracion', 'claves_rapidas'); if (c) misClaves = c.datos; } catch(e) {} }
+els.btnMod.addEventListener('click', () => {
+    els.inElite.value = misClaves.elite || ''; els.inFenix.value = misClaves.fenix || '';
+    els.inRed.value = misClaves.red || ''; els.inWts.value = misClaves.wts || '';
+    els.modal.classList.remove('hidden');
+});
+els.btnCancelMod.addEventListener('click', () => els.modal.classList.add('hidden'));
+els.btnSaveMod.addEventListener('click', async () => {
+    misClaves = { elite: els.inElite.value, fenix: els.inFenix.value, red: els.inRed.value, wts: els.inWts.value };
+    try { await baseDatos.guardar('configuracion', { clave: 'claves_rapidas', datos: misClaves }); alert("✅ Guardado"); els.modal.classList.add('hidden'); } catch(e) { alert("Error: " + e); }
+});
+function copiarClave(key) {
+    if(misClaves[key]) {
+        navigator.clipboard.writeText(misClaves[key]);
+        const btn = els['k' + key.charAt(0).toUpperCase() + key.slice(1)]; const prev = btn.textContent; btn.textContent = "Copiado"; setTimeout(() => btn.textContent = prev, 800);
+    } else { alert("Configura esta clave primero ⚙️"); }
+}
+els.kElite.addEventListener('click', () => copiarClave('elite')); els.kFenix.addEventListener('click', () => copiarClave('fenix'));
+els.kRed.addEventListener('click', () => copiarClave('red')); els.kWts.addEventListener('click', () => copiarClave('wts'));
+
+/* 8. TIMER */
+function startTimer(manual = false) {
+    els.timerPanel.classList.remove('hidden'); if(timerRetoma) clearInterval(timerRetoma);
+    retomaStartTime = Date.now(); if(!horaInicioLlamada) horaInicioLlamada = Date.now();
+    proximaAlarmaSegundos = manual ? 115 : 45;
     timerRetoma = setInterval(() => {
-        const ahora = Date.now();
-        const segundosTotal = Math.floor((ahora - horaInicioLlamada) / 1000);
-        
-        // 1. Timer Visual Total
-        if (displayTotal) displayTotal.textContent = formatoMMSS(segundosTotal);
-
-        // 2. Colores Venta
-        actualizarColorVenta(segundosTotal);
-
-        // 3. Timer Ciclo
-        const segundosCiclo = Math.floor((ahora - retomaStartTime) / 1000);
-        let falta = proximaAlarmaSegundos - segundosCiclo;
-        if (falta < 0) falta = 0; 
-
-        if (displayCountdown) {
-            displayCountdown.textContent = formatoMMSS(falta);
-            if (falta <= 10) displayCountdown.classList.add('danger');
-            else displayCountdown.classList.remove('danger');
-        }
-
-        if (falta === 0) {
-            sonarAlertaRetoma();
-            retomaStartTime = Date.now(); 
-            proximaAlarmaSegundos = 115;
-        }
-
+        const now = Date.now(); const totalSec = Math.floor((now - horaInicioLlamada) / 1000); els.dispTotal.textContent = fmtTime(totalSec);
+        const cycleSec = Math.floor((now - retomaStartTime) / 1000); let left = proximaAlarmaSegundos - cycleSec; if(left < 0) left = 0;
+        els.dispCount.textContent = fmtTime(left); if(left <= 10) els.dispCount.classList.add('danger'); else els.dispCount.classList.remove('danger');
+        if(left === 0) { playAlert(); retomaStartTime = Date.now(); proximaAlarmaSegundos = 115; }
     }, 1000);
 }
+els.id.addEventListener('input', () => { if(els.id.value.trim().length > 0 && !timerRetoma) startTimer(false); });
+els.btnRefres.addEventListener('click', () => { if(horaInicioLlamada) startTimer(true); });
+let audioCtx;
+function playAlert() {
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.setValueAtTime(523.25, audioCtx.currentTime); g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1); o.start(); o.stop(audioCtx.currentTime + 1);
+}
 
-function actualizarColorVenta(segundos) {
-    if (!ventaContainer || !checkVenta) return;
-
-    if (checkVenta.checked) {
-        ventaContainer.className = 'sale-alert-box sale-success';
-        return;
+/* 9. COPIAR */
+document.getElementById('btn_copy').addEventListener('click', () => {
+    if(!els.id.value || !els.obs.value) return alert("Falta ID o Obs");
+    let txt = `Observaciones: ${els.obs.value};\n`; txt += `ID de la llamada: ${els.id.value};\n`;
+    const add = (lbl, v) => { if(v && v.trim()) txt += `${lbl}: ${v.trim()};\n`; };
+    add("ID prueba integrada SMNET", els.smnetInt.value); add("ID prueba unitaria SMNET", els.smnetUnit.value);
+    add("Tecnología", els.tech.value); add("Servicio", els.prod.value); add("Dolor puntual", els.fail.value);
+    if(tipoServicioActual === 'TV') {
+        const qty = els.tvQty.value; if(qty && qty > 0) txt += `Cantidad de equipos fallando: ${qty};\n`;
+        document.querySelectorAll('.tv-serial').forEach((inp, i) => { if(inp.value.trim()) txt += `MAC o SN #${i+1}: ${inp.value.trim()};\n`; });
     }
+    add("Horario del evento o en donde más falla", els.horario.value);
+    if(tipoServicioActual === 'NET') { const val = els.soporteVel.value || 'Si'; txt += `El equipo del usuario soporta la velocidad contratada: ${val};\n`; }
+    if(els.portal.checked) txt += "Se verifica portal Cautivo OK ;\n";
+    if(document.querySelector('input[name="b2b_option"]:checked').value === 'si') {
+        txt += `Horario B2B - Nombre de quien atiende: ${els.b2bContact.value};\n`;
+        txt += `Celular de quien atiende: ${els.b2bPhone.value};\n`;
+        let dias = els.b2bDays.value;
+        if(els.cSat.checked) dias += ` (Sábados: ${els.iSat.children[0].children[0].value} - ${els.iSat.children[1].children[0].value})`;
+        if(els.cSun.checked) dias += ` (Domingos: ${els.iSun.children[0].children[0].value} - ${els.iSun.children[1].children[0].value})`;
+        txt += `Días en los que se atiende: ${dias};\n`;
+        txt += `Horario de atención - Hora Inicial: ${els.b2bStart.value};\n`;
+        txt += `Hora final: ${els.b2bEnd.value};\n`;
+        const perm = document.querySelector('input[name="permiso_opt"]:checked').value === 'si' ? els.permisoTxt.value : 'No';
+        txt += `Se requiere permiso especial o algún documento: ${perm};\n`;
+    } else { txt += "No aplica horario B2B\n"; }
+    navigator.clipboard.writeText(txt).then(() => { const b = document.getElementById('btn_copy'); const prev = b.textContent; b.textContent = "¡Copiado!"; setTimeout(() => b.textContent = prev, 1000); });
+});
 
-    ventaContainer.className = 'sale-alert-box';
-
-    if (segundos > 180) { // +3 min: Rojo
-        ventaContainer.classList.add('sale-danger');
-    } else if (segundos > 60) { // +1 min: Amarillo
-        ventaContainer.classList.add('sale-warning');
-    }
-}
-
-if (checkVenta) {
-    checkVenta.addEventListener('change', () => {
-        const segundos = horaInicioLlamada ? Math.floor((Date.now() - horaInicioLlamada) / 1000) : 0;
-        actualizarColorVenta(segundos);
-    });
-}
-
-// Botón de Retoma Manual
-if (btnRefres) {
-    btnRefres.addEventListener('click', () => {
-        if (horaInicioLlamada !== null) {
-            gestionarTimerRetoma(true); 
-            const original = btnRefres.textContent;
-            btnRefres.textContent = "⏱️";
-            btnRefres.style.backgroundColor = "#dcfce7"; 
-            setTimeout(() => { 
-                btnRefres.textContent = original; 
-                btnRefres.style.backgroundColor = ""; 
-            }, 800);
-        }
-    });
-}
-
-// Inicio Automático
-if (callIdInput) {
-    callIdInput.addEventListener('input', () => {
-        if (callIdInput.value.trim().length > 0 && timerRetoma === null) {
-            gestionarTimerRetoma(false); 
-        }
-    });
-}
-
-/* =========================================
-   7. FUNCIONES DE UTILIDAD
-   ========================================= */
-function llenarDatalist(datalistElement, arrayOpciones) {
-    if (!datalistElement) return;
-    datalistElement.innerHTML = ''; 
-    if (!arrayOpciones) return;
-    arrayOpciones.forEach(opcion => {
-        const optionTag = document.createElement('option');
-        optionTag.value = opcion;
-        datalistElement.appendChild(optionTag);
-    });
-}
-
-function formatoMMSS(segundos) {
-    const m = Math.floor(segundos / 60).toString().padStart(2, '0');
-    const s = Math.floor(segundos % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-}
-
-function formatearDual(segundos) {
-    const totalSeg = Math.round(segundos);
-    const m = Math.floor(totalSeg / 60).toString().padStart(2, '0');
-    const s = (totalSeg % 60).toString().padStart(2, '0');
-    return `${totalSeg}s / ${m}.${s}m`;
-}
-
-// Auto-expandir Textarea
-if (obsTextarea) {
-    const ajustarAltura = () => {
-        obsTextarea.style.height = 'auto'; 
-        obsTextarea.style.height = (obsTextarea.scrollHeight) + 'px'; 
+/* 10. GUARDAR & AHT (CORREGIDO) */
+document.getElementById('btn_reset').addEventListener('click', async () => {
+    if(!els.id.value || !els.obs.value) return alert("Falta ID o Obs");
+    if(timerRetoma) clearInterval(timerRetoma);
+    
+    let tvInfo = ""; if(tipoServicioActual === 'TV') { const arr=[]; document.querySelectorAll('.tv-serial').forEach(i=>{if(i.value)arr.push(i.value)}); tvInfo = arr.join(" | "); }
+    const reg = {
+        id_unico: Date.now(), fecha: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(),
+        id: els.id.value, cliente: els.cliente.value, celular: els.cel.value, cedula: els.doc.value,
+        tec: els.tech.value, prod: els.prod.value, falla: els.fail.value, obs: els.obs.value,
+        notif_confirmada: els.checkNotif.checked, venta_ofrecida: els.checkVenta.checked,
+        tipo_servicio: tipoServicioActual || 'N/A', tv_data: tvInfo, duracion: horaInicioLlamada ? Number(((Date.now()-horaInicioLlamada)/1000).toFixed(2)) : 0
     };
-    obsTextarea.addEventListener('input', ajustarAltura);
-    obsTextarea.addEventListener('focus', ajustarAltura);
-}
-
-/* =========================================
-   8. INPUTS INTELIGENTES (USANDO showPicker)
-   ========================================= */
-function configurarInputAvanzado(inputElement, dataListId) {
-    if (!inputElement) return;
-    const label = inputElement.nextElementSibling;
-
-    // --- ACTIVAR showPicker() EN CLICK ---
-    inputElement.addEventListener('click', function() {
-        if (typeof this.showPicker === 'function') {
-            try {
-                this.showPicker();
-            } catch (error) {
-                console.log("showPicker no soportado o bloqueado");
-            }
-        }
-    });
-
-    inputElement.addEventListener('focus', function() {
-        this.dataset.oldValue = this.value; 
-        
-        if (this.value && label) {
-            if (!label.dataset.originalText) label.dataset.originalText = label.innerText; 
-            label.innerText = this.value; 
-            label.style.color = "#ef4444"; 
-        }
-        
-        this.value = ''; 
-    });
-
-    inputElement.addEventListener('blur', function() {
-        if (this.value === '') this.value = this.dataset.oldValue || ''; 
-        if (label && label.dataset.originalText) {
-            label.innerText = label.dataset.originalText;
-            label.style.color = ""; 
-        }
-    });
-
-    inputElement.addEventListener('keydown', function(e) {
-        if (e.key === 'Tab') {
-            const val = this.value.toLowerCase();
-            const dataList = document.getElementById(dataListId);
-            if (val && dataList) {
-                const opciones = Array.from(dataList.options);
-                const coincidencia = opciones.find(opt => opt.value.toLowerCase().startsWith(val));
-                if (coincidencia) {
-                    e.preventDefault(); 
-                    this.value = coincidencia.value;
-                    this.dispatchEvent(new Event('change'));
-                    const formElements = Array.from(document.querySelectorAll('input:not([type="hidden"]), textarea, button'));
-                    const currentIndex = formElements.indexOf(this);
-                    if (currentIndex > -1 && currentIndex < formElements.length - 1) {
-                        formElements[currentIndex + 1].focus();
-                    }
-                }
-            }
-        }
-    });
-}
-
-configurarInputAvanzado(techInput, 'tech_options');
-configurarInputAvanzado(prodInput, 'prod_options');
-configurarInputAvanzado(failInput, 'fail_options');
-configurarInputAvanzado(horarioFallaInput, 'horario_options');
-configurarInputAvanzado(soporteVelocidadInput, 'yes_no_options');
-
-function actualizarFallas(producto) {
-    if (!opcionesNaturaleza[producto]) {
-        if(failList) failList.innerHTML = '';
-        if(failInput) failInput.value = '';
-        return;
-    }
-    llenarDatalist(failList, opcionesNaturaleza[producto]);
-    if(failInput) failInput.value = opcionesNaturaleza[producto][0];
-}
-
-if (techInput) techInput.addEventListener('change', (e) => {
-    const tec = e.target.value;
-    const servicios = opcionesTiposervicio[tec];
-    if (servicios && servicios.length > 0) {
-        llenarDatalist(prodList, servicios);
-        prodInput.value = servicios[0];
-        actualizarFallas(servicios[0]);
-    }
-});
-if (prodInput) prodInput.addEventListener('change', (e) => actualizarFallas(e.target.value));
-
-/* =========================================
-   9. CLAVES RÁPIDAS
-   ========================================= */
-async function cargarClavesDesdeDB() {
-    try {
-        const configGuardada = await baseDatos.leerUno('configuracion', 'claves_rapidas');
-        if (configGuardada) misClaves = configGuardada.datos;
-        else await baseDatos.guardar('configuracion', { clave: 'claves_rapidas', datos: misClaves });
-    } catch (e) { console.error("Error cargando claves:", e); }
-}
-
-Object.keys(misClaves).forEach(id => {
-    const btn = document.getElementById(id);
-    if(btn) {
-        btn.addEventListener('click', () => {
-            navigator.clipboard.writeText(misClaves[id]);
-            const original = btn.textContent;
-            btn.textContent = "Copiado!";
-            setTimeout(() => btn.textContent = original, 800);
-        });
-    }
+    try { 
+        await baseDatos.guardar('historial', reg); 
+        await actualizarMetricas(); // CALCULAR AHT DESPUÉS DE GUARDAR
+        console.log("Guardado"); 
+    } catch(e) { alert("Error: "+e); }
+    
+    // Reset Form
+    horaInicioLlamada = null;
+    document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"])').forEach(i => i.value = '');
+    els.obs.value = ''; els.obs.style.height = 'auto'; els.tvCont.innerHTML = '';
+    els.pNet.classList.remove('visible'); els.pTv.classList.remove('visible'); els.b2bPanel.classList.remove('visible');
+    els.checkNotif.checked = false; els.toggleNotif.classList.remove('active'); els.checkVenta.checked = false; els.toggleVenta.classList.remove('active');
+    els.soporteVel.value = 'Si'; document.querySelector('input[name="b2b_option"][value="no"]').click();
+    els.timerPanel.classList.add('hidden'); els.id.focus();
 });
 
-// Modal Configuración
-const btnModificar = document.getElementById('btn_key_mod');
-const modalClaves = document.getElementById('modal_claves');
-const btnGuardarModal = document.getElementById('btn_guardar_modal');
-const btnCancelarModal = document.getElementById('btn_cancelar_modal');
-
-if (btnModificar) {
-    btnModificar.addEventListener('click', () => {
-        document.getElementById('edit_key_elite').value = misClaves['btn_key_elite'];
-        document.getElementById('edit_key_fenix').value = misClaves['btn_key_fenix'];
-        document.getElementById('edit_key_pwd').value = misClaves['btn_key_pwd'];
-        if(modalClaves) modalClaves.classList.remove('hidden');
-    });
-}
-if (btnCancelarModal) btnCancelarModal.addEventListener('click', () => modalClaves?.classList.add('hidden'));
-
-if (btnGuardarModal) {
-    btnGuardarModal.addEventListener('click', async () => {
-        misClaves['btn_key_elite'] = document.getElementById('edit_key_elite').value;
-        misClaves['btn_key_fenix'] = document.getElementById('edit_key_fenix').value;
-        misClaves['btn_key_pwd'] = document.getElementById('edit_key_pwd').value;
-        try {
-            await baseDatos.guardar('configuracion', { clave: 'claves_rapidas', datos: misClaves });
-            alert("✅ Claves actualizadas.");
-            modalClaves?.classList.add('hidden');
-        } catch (e) { alert("Error: " + e); }
-    });
-}
-
-/* =========================================
-   10. MÉTRICAS AHT
-   ========================================= */
-async function actualizarMetricasDesdeDB() {
+/* 11. CÁLCULO REAL AHT */
+async function actualizarMetricas() {
     try {
-        if (!baseDatos.db) return; 
+        if (!baseDatos.db) return;
         const historial = await baseDatos.leerTodo('historial');
-        const hoyTexto = new Date().toLocaleDateString();
-        const ahora = new Date();
-        const mesActual = ahora.getMonth();
-        const anioActual = ahora.getFullYear();
-
-        let sumaDia = 0, countDia = 0;
-        let sumaMes = 0, countMes = 0;
-
-        historial.forEach(reg => {
-            const duracion = Number(reg.duracion) || 0;
-            const fechaReg = new Date(reg.id_unico);
-
-            if (fechaReg.getMonth() === mesActual && fechaReg.getFullYear() === anioActual) {
-                sumaMes += duracion;
-                countMes++;
-            }
-            if (reg.fecha === hoyTexto) {
-                sumaDia += duracion;
-                countDia++;
-            }
-        });
-
-        const ahtDia = countDia > 0 ? sumaDia / countDia : 0;
-        const ahtMes = countMes > 0 ? sumaMes / countMes : 0;
-
-        const divDiario = document.getElementById('aht_daily_display');
-        const divMensual = document.getElementById('aht_monthly_display');
-
-        if (divDiario) divDiario.textContent = formatearDual(ahtDia);
-        if (divMensual) divMensual.textContent = formatearDual(ahtMes);
-    } catch (error) { console.error("Error métricas:", error); }
-}
-
-/* =========================================
-   11. B2B PANEL
-   ========================================= */
-if (radiosB2B && radiosB2B.length > 0) {
-    radiosB2B.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            if (panelB2B) {
-                if (e.target.value === 'si') panelB2B.classList.remove('hidden');
-                else panelB2B.classList.add('hidden');
-            }
-        });
-    });
-}
-
-/* =========================================
-   12. ACCIONES (COPIAR, GUARDAR, IMPORTAR, EXPORTAR)
-   ========================================= */
-
-// COPIAR DATOS
-const btnCopy = document.getElementById('btn_copy');
-if (btnCopy) {
-    btnCopy.addEventListener('click', () => {
-        const idValor = callIdInput ? callIdInput.value.trim() : '';
-        const obsValor = obsTextarea ? obsTextarea.value.trim() : '';
         
-        // Validación básica
-        if (!idValor || !obsValor) { alert("⚠️ Faltan datos."); return; }
+        const now = new Date();
+        const hoyString = now.toLocaleDateString(); // "23/1/2026" dependiendo del locale
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
 
-        const addField = (lbl, v) => (v && v.trim() !== "") ? `${lbl}: ${v.trim()};` : "";
+        let dailySum = 0, dailyCount = 0;
+        let monthlySum = 0, monthlyCount = 0;
 
-        // 1. Observaciones
-        let plantilla = `Observaciones: ${obsValor};`;
-        
-        // 2. ID Llamada
-        plantilla += `ID de la llamada: ${idValor};`;
-
-        // 3 y 4. SMNET
-        const smnetInt = document.getElementById('prueba_smnet')?.value;
-        const smnetUnit = smnetUnitariaInput?.value;
-        plantilla += addField("ID prueba integrada SMNET", smnetInt);
-        plantilla += addField("ID prueba unitaria SMNET", smnetUnit);
-
-        // 5, 6 y 7. Tecnología, Servicio, Dolor Puntual
-        plantilla += addField("Tecnología", techInput?.value);
-        plantilla += addField("Servicio", prodInput?.value); 
-        plantilla += addField("Dolor puntual", failInput?.value);
-        
-        // 8. Horario
-        plantilla += addField("Horario del evento o en donde más falla", horarioFallaInput?.value);
-        
-        // 9. Soporte Velocidad
-        const valVel = soporteVelocidadInput?.value || "Si";
-        plantilla += `El equipo del usuario soporta la velocidad contratada: ${valVel};`;
-
-        // 10. Portal Cautivo
-        if(checkPortal && checkPortal.checked) {
-            plantilla += "Se verifica portal Cautivo OK ;";
-        }
-
-        // 11. B2B
-        const isB2B = document.querySelector('input[name="b2b_option"]:checked')?.value === 'si';
-        if (!isB2B) {
-            plantilla += "No aplica horario B2B;";
-        } else {
-            plantilla += "Aplica horario B2B (";
-            plantilla += `Atiende: ${document.getElementById('b2b_contact')?.value || '-'}, `;
-            plantilla += `Días: ${document.getElementById('b2b_days')?.value || '-'}, `;
-            plantilla += `Horario: ${document.getElementById('b2b_schedule')?.value || '-'}`;
-            plantilla += ");";
-        }
-
-        // EXTRAS
-        plantilla += addField("Documento", cedulaInput?.value);
-        plantilla += addField("Celular", celularInput?.value);
-        
-        if(checkNotif && checkNotif.checked) plantilla += "Notificación Electrónica: Confirmada;";
-
-        plantilla = plantilla.trim();
-
-        navigator.clipboard.writeText(plantilla).then(() => {
-            const original = btnCopy.textContent;
-            btnCopy.textContent = "¡Copiado!";
-            if(btnReset) btnReset.focus(); 
-            setTimeout(() => btnCopy.textContent = original, 1000);
-        });
-    });
-}
-
-// GUARDAR / REINICIAR (Finalizar Llamada)
-const btnReset = document.getElementById('btn_reset');
-if (btnReset) {
-    btnReset.addEventListener('click', async () => {
-        const idValor = callIdInput.value.trim();
-        const obsValor = obsTextarea.value.trim();
-        if (!idValor || !obsValor) { alert("⚠️ Faltan datos obligatorios."); return; }
-
-        // DETENER TIMER
-        if (timerRetoma) {
-            clearInterval(timerRetoma);
-            timerRetoma = null;
-        }
-
-        const fin = Date.now();
-        const duracionRaw = (horaInicioLlamada) ? (fin - horaInicioLlamada) / 1000 : 0;
-        
-        // LEER ESTADO DE VENTA OFRECIDA
-        const ventaOfrecida = checkVenta ? checkVenta.checked : false;
-
-        const registro = {
-            id_unico: Date.now(),
-            fecha: new Date().toLocaleDateString(),
-            hora: new Date().toLocaleTimeString(),
-            id: idValor,
-            cliente: clienteInput?.value || '',
-            cedula: cedulaInput?.value || '',
-            celular: celularInput?.value || '',
-            smnet: document.getElementById('prueba_smnet')?.value || '',
-            
-            // Campos
-            smnet_uni: smnetUnitariaInput?.value || '',
-            horario_falla: horarioFallaInput?.value || '',
-            soporta_vel: soporteVelocidadInput?.value || 'Si',
-            portal_cautivo: checkPortal?.checked || false,
-            notif_elect: checkNotif?.checked || false,
-            
-            // NUEVO CAMPO BD
-            ofrecio_venta: ventaOfrecida,
-
-            tec: techInput.value,
-            prod: prodInput.value,
-            falla: failInput.value,
-            obs: obsValor,
-            duracion: Number(duracionRaw.toFixed(2)),
-            
-            esB2B: document.querySelector('input[name="b2b_option"]:checked')?.value === 'si',
-            b2b_atiende: document.getElementById('b2b_contact')?.value || '',
-            b2b_dias: document.getElementById('b2b_days')?.value || '',
-            b2b_horario: document.getElementById('b2b_schedule')?.value || ''
-        };
-
-        try {
-            await baseDatos.guardar('historial', registro);
-            console.log("💾 Guardado OK - Venta Ofrecida:", ventaOfrecida);
-            await actualizarMetricasDesdeDB();
-        } catch (error) { alert("Error DB: " + error); }
-        
-        // LIMPIEZA
-        horaInicioLlamada = null;
-        inicioCicloAlarma = null;
-
-        document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"])').forEach(i => i.value = '');
-        document.querySelectorAll('textarea').forEach(t => { t.value = ''; t.style.height = 'auto'; });
-        
-        // Resetear campos
-        if(soporteVelocidadInput) soporteVelocidadInput.value = 'Si';
-        if(checkPortal) checkPortal.checked = false;
-        if(checkNotif) checkNotif.checked = false;
-        
-        // Resetear Venta
-        if(checkVenta) {
-            checkVenta.checked = false;
-            if(ventaContainer) ventaContainer.className = 'sale-alert-box';
-        }
-
-        if(prodList) prodList.innerHTML = '';
-        if(failList) failList.innerHTML = '';
-        if(panelB2B) panelB2B.classList.add('hidden');
-        document.querySelector('input[name="b2b_option"][value="no"]').click();
-
-        if (callIdInput) callIdInput.focus();
-        
-        if(timerPanel) {
-            timerPanel.classList.add('hidden');
-            if (displayTotal) displayTotal.textContent = "00:00";
-            if (displayCountdown) { displayCountdown.textContent = "00:00"; displayCountdown.classList.remove('danger'); }
-        }
-    });
-}
-
-// EXPORTAR
-const btnExport = document.getElementById('btn_export');
-if (btnExport) {
-    btnExport.addEventListener('click', async () => {
-        const historial = await baseDatos.leerTodo('historial');
-        if (historial.length === 0) { alert("⚠️ No hay datos."); return; }
-        const fechaHoy = new Date().toLocaleDateString().replace(/\//g, '-');
-        
-        // CSV actualizado con campo Venta
-        let csv = "Fecha,Hora,ID,Cliente,Celular,Venta_Ofrecida,SMNET_Unit,Soporta_Vel,Portal,Notif,Tecnologia,Servicio,Falla,Horario_Falla,Duracion,Observaciones\n";
-        
         historial.forEach(r => {
-            const obsClean = (r.obs || '').replace(/"/g, '""').replace(/(\r\n|\n|\r)/gm, " ");
-            const dur = r.duracion ? r.duracion.toString().replace('.', ',') : '0';
-            const cel = r.celular || '';
-            const portal = r.portal_cautivo ? 'SI' : 'NO';
-            const notif = r.notif_elect ? 'SI' : 'NO';
-            const horario = r.horario_falla || '';
-            const smnetU = r.smnet_uni || '';
-            const sopVel = r.soporta_vel || 'Si';
-            const venta = r.ofrecio_venta ? 'SI' : 'NO';
-
-            csv += `${r.fecha},${r.hora},${r.id},"${r.cliente}","${cel}","${venta}","${smnetU}","${sopVel}","${portal}","${notif}",${r.tec},${r.prod},"${r.falla}","${horario}",${dur},"${obsClean}"\n`;
+            const dur = Number(r.duracion) || 0;
+            const rDate = new Date(r.id_unico); // Usamos el timestamp para el mes
+            
+            // AHT Diario (comparación string fecha exacta)
+            if (r.fecha === hoyString) {
+                dailySum += dur;
+                dailyCount++;
+            }
+            // AHT Mensual
+            if (rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear) {
+                monthlySum += dur;
+                monthlyCount++;
+            }
         });
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `Gestion_Llamadas_${fechaHoy}.csv`;
-        link.click();
-    });
+
+        const dailyAvg = dailyCount > 0 ? dailySum / dailyCount : 0;
+        const monthlyAvg = monthlyCount > 0 ? monthlySum / monthlyCount : 0;
+        
+        const fmt = (s) => `${Math.round(s)}s / ${(s/60).toFixed(1)}m`;
+        
+        if(els.ahtDay) els.ahtDay.textContent = fmt(dailyAvg);
+        if(els.ahtMonth) els.ahtMonth.textContent = fmt(monthlyAvg);
+
+    } catch (e) { console.error("Error AHT:", e); }
 }
 
-// IMPORTAR
-const btnImport = document.getElementById('btn_import_data');
-const fileSelector = document.getElementById('file_selector');
-if (btnImport && fileSelector) {
-    btnImport.addEventListener('click', () => fileSelector.click());
-    fileSelector.addEventListener('change', function(e) {
-        const archivo = e.target.files[0];
-        if (!archivo) return;
-        const lector = new FileReader();
-        lector.onload = async function(e) {
-            const contenido = e.target.result;
-            let datosParaImportar = [];
-            try {
-                if (archivo.name.endsWith('.json')) datosParaImportar = JSON.parse(contenido);
-                else if (archivo.name.endsWith('.csv')) { /* ... */ }
-                
-                if (datosParaImportar.length > 0 && confirm(`¿Importar ${datosParaImportar.length} registros?`)) {
-                    for (const registro of datosParaImportar) {
-                        if(!registro.id_unico) registro.id_unico = Date.now() + Math.random();
-                        await baseDatos.guardar('historial', registro);
-                    }
-                    alert("✅ Importación completada.");
-                    await actualizarMetricasDesdeDB();
-                }
-            } catch (err) { alert("❌ Error al importar."); }
-        };
-        lector.readAsText(archivo);
-    });
-}
-
-// BORRAR DB
-const btnClear = document.getElementById('btn_clear_data');
-if (btnClear) {
-    btnClear.addEventListener('click', async () => {
-        if (confirm("⚠️ ¿BORRAR TODO EL HISTORIAL?\nEsta acción no se puede deshacer.")) {
-            const req = indexedDB.deleteDatabase('SistemaGestionDB');
-            req.onsuccess = () => location.reload();
-            req.onerror = () => alert("Error borrando DB");
-        }
-    });
-}
-
-/* =========================================
-   13. INICIO
-   ========================================= */
-async function init() {
-    llenarDatalist(techList, Object.keys(opcionesTiposervicio));
-    try {
-        await baseDatos.iniciar();
-        console.log("✅ DB Conectada (App Principal)");
-        await cargarClavesDesdeDB();
-        await actualizarMetricasDesdeDB(); 
-    } catch (error) { console.error("Fallo inicialización:", error); }
+function fmtTime(s) { return Math.floor(s/60).toString().padStart(2,'0')+":"+Math.floor(s%60).toString().padStart(2,'0'); }
+async function init() { 
+    fillList(els.lTech, Object.keys(opcionesTiposervicio)); 
+    await baseDatos.iniciar(); 
+    await cargarClaves(); 
+    await actualizarMetricas(); 
 }
 init();
