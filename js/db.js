@@ -1,98 +1,88 @@
-/* =========================================
-   ARCHIVO: js/db.js
-   PROPÓSITO: Motor de Base de Datos Compartido
-   NOTA: Este script debe cargarse ANTES que app.js o dashboard.js
-   ========================================= */
+/* ==========================================================================
+   ARCHIVO: js/db.js - EL MOTOR DE LA BASE DE DATOS (INDEXEDDB)
+   ========================================================================== */
 
-class GestorDB {
-    constructor() {
-        this.nombreDB = 'SistemaGestionDB';
-        this.version = 1;
-        this.db = null;
-    }
+const baseDatos = {
+    db: null,
+    nombreDB: 'TicketManagerDB',
+    version: 1,
+    store: 'historial',
+    configStore: 'configuracion', // Para guardar claves (Elite, Fenix...)
 
-    // Abre la conexión y crea las "tablas" si no existen
-    async iniciar() {
+    iniciar: function() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.nombreDB, this.version);
 
             request.onupgradeneeded = (e) => {
                 const db = e.target.result;
-                // 1. Almacén de Historial de Llamadas
-                if (!db.objectStoreNames.contains('historial')) {
-                    db.createObjectStore('historial', { keyPath: 'id_unico' });
+                // Almacén principal de tickets
+                if (!db.objectStoreNames.contains(this.store)) {
+                    db.createObjectStore(this.store, { keyPath: 'id_unico' });
                 }
-                // 2. Almacén de Configuración (Claves Rápidas)
-                if (!db.objectStoreNames.contains('configuracion')) {
-                    db.createObjectStore('configuracion', { keyPath: 'clave' });
+                // Almacén para configuración (claves, preferencias)
+                if (!db.objectStoreNames.contains(this.configStore)) {
+                    db.createObjectStore(this.configStore, { keyPath: 'clave' });
                 }
             };
 
             request.onsuccess = (e) => {
                 this.db = e.target.result;
-                // console.log("DB: Conexión establecida");
+                console.log("✅ Base de Datos Conectada");
                 resolve(true);
             };
 
-            request.onerror = (e) => reject("Error DB: " + e.target.error);
+            request.onerror = (e) => {
+                console.error("❌ Error al abrir DB:", e.target.error);
+                reject("Error al abrir DB");
+            };
         });
-    }
+    },
 
-    // Guardar o Actualizar un registro
-    async guardar(tabla, datos) {
+    guardar: function(tabla, datos) {
         return new Promise((resolve, reject) => {
-            if (!this.db) return reject("La base de datos no está iniciada");
+            if (!this.db) return reject("DB no iniciada");
             const tx = this.db.transaction([tabla], 'readwrite');
             const store = tx.objectStore(tabla);
-            const req = store.put(datos);
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-        });
-    }
+            const req = store.put(datos); // put sirve para insertar o actualizar
 
-    // Leer todos los registros de una tabla
-    async leerTodo(tabla) {
+            req.onsuccess = () => resolve(true);
+            req.onerror = (e) => reject(e.target.error);
+        });
+    },
+
+    leerTodo: function(tabla) {
         return new Promise((resolve, reject) => {
-            if (!this.db) return reject("La base de datos no está iniciada");
+            if (!this.db) return resolve([]); // Si falla, devuelve array vacío para no romper
             const tx = this.db.transaction([tabla], 'readonly');
             const store = tx.objectStore(tabla);
             const req = store.getAll();
-            req.onsuccess = () => {
-                // Ordenamos por defecto del más nuevo al más viejo si tienen id_unico (timestamp)
-                const resultados = req.result || [];
-                resultados.sort((a, b) => b.id_unico - a.id_unico);
-                resolve(resultados);
-            };
-            req.onerror = () => reject(req.error);
-        });
-    }
 
-    // Leer un solo registro por su clave
-    async leerUno(tabla, clave) {
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = (e) => reject(e.target.error);
+        });
+    },
+    
+    leerUno: function(tabla, key) {
         return new Promise((resolve, reject) => {
-            if (!this.db) return reject("La base de datos no está iniciada");
+            if (!this.db) return resolve(null);
             const tx = this.db.transaction([tabla], 'readonly');
             const store = tx.objectStore(tabla);
-            const req = store.get(clave);
-            req.onsuccess = () => resolve(req.result);
-            req.onerror = () => reject(req.error);
-        });
-    }
+            const req = store.get(key);
 
-    // Eliminar un registro
-    async eliminar(tabla, id) {
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = (e) => reject(e.target.error);
+        });
+    },
+
+    eliminar: function(tabla, key) {
         return new Promise((resolve, reject) => {
-            if (!this.db) return reject("La base de datos no está iniciada");
+            if (!this.db) return reject("DB no iniciada");
             const tx = this.db.transaction([tabla], 'readwrite');
             const store = tx.objectStore(tabla);
-            const req = store.delete(id);
+            const req = store.delete(key);
+
             req.onsuccess = () => resolve(true);
-            req.onerror = () => reject(req.error);
+            req.onerror = (e) => reject(e.target.error);
         });
     }
-}
-
-// === INSTANCIA GLOBAL ===
-// Al crear esto aquí, la variable "baseDatos" estará disponible en cualquier script 
-// que se cargue DESPUÉS de este archivo.
-const baseDatos = new GestorDB();
+};
