@@ -15,7 +15,7 @@
         <a href="data.html" class="tool-btn" target="_blank">📊 Historial</a>
         <button class="tool-btn" id="btn_clear_data" title="Borrar DB Local">🗑️ Borrar DB</button>
         <button class="tool-btn" id="btn_import_data">📥 Importar</button>
-        <input type="file" id="file_selector" style="display: none;" accept=".json">
+        <input type="file" id="file_selector" style="display: none;" accept=".json, .csv">
     </nav>
 
     <div class="row col-2">
@@ -70,10 +70,19 @@
     </div>
 
     <div id="panel_internet" class="dynamic-panel">
-        <div class="floating-group" style="margin-top:10px;">
-            <input type="text" id="soporte_velocidad" list="yes_no_options" value="Si" placeholder=" " autocomplete="off">
-            <label>¿Equipo Soporta Velocidad?</label>
-            <datalist id="yes_no_options"><option value="Si"><option value="No"></datalist>
+        <div class="row col-2" style="margin-top:10px;">
+            
+            <div class="floating-group">
+                <input type="text" id="soporte_velocidad" list="yes_no_options" value="Si" placeholder=" " autocomplete="off">
+                <label>¿Equipo Soporta Velocidad?</label>
+                <datalist id="yes_no_options"><option value="Si"><option value="No"></datalist>
+            </div>
+            
+            <div id="mac_wrapper" class="floating-group hidden">
+                <input type="text" id="mac_input" placeholder=" " autocomplete="off" style="text-transform:uppercase;">
+                <label>MAC Módem (HFC)</label>
+            </div>
+
         </div>
     </div>
 
@@ -106,9 +115,9 @@
             </datalist>
         </div>
 
-        <div class="check-simple" onclick="document.getElementById('check_portal_cautivo').click()">
+        <div class="check-simple">
             <input type="checkbox" id="check_portal_cautivo">
-            <label for="check_portal_cautivo" style="cursor:pointer; width:100%;">Portal Cautivo OK</label>
+            <label for="check_portal_cautivo" style="cursor:pointer; width:100%; height:100%; display:flex; align-items:center;">Portal Cautivo OK</label>
         </div>
     </div>
 
@@ -116,6 +125,24 @@
         <textarea id="observaciones" placeholder=" " spellcheck="true"></textarea>
         <label>Observaciones</label>
     </div>
+
+    <div class="actions">
+        <button id="btn_copy">📋 Copiar Datos</button>
+        <button id="btn_reset">💾 Guardar / Reset</button>
+    </div>
+
+    <div class="management-row">
+        <label class="toggle-btn" id="btn_toggle_notif">
+            <input type="checkbox" id="check_notif_db">
+            <span>📩 Notif. Confirmada</span>
+        </label>
+        <label class="toggle-btn" id="btn_toggle_venta">
+            <input type="checkbox" id="check_venta_db">
+            <span>💰 Ofrecí Venta</span>
+        </label>
+    </div>
+
+    
 
     <div class="b2b-section">
         <div class="b2b-header">
@@ -206,21 +233,7 @@
         </div>
     </div>
 
-    <div class="management-row">
-        <label class="toggle-btn" id="btn_toggle_notif">
-            <input type="checkbox" id="check_notif_db">
-            <span>📩 Notif. Confirmada</span>
-        </label>
-        <label class="toggle-btn" id="btn_toggle_venta">
-            <input type="checkbox" id="check_venta_db">
-            <span>💰 Ofrecí Venta</span>
-        </label>
-    </div>
-
-    <div class="actions">
-        <button id="btn_copy">📋 Copiar Datos</button>
-        <button id="btn_reset">💾 Guardar / Reset</button>
-    </div>
+    
 
     <div class="key-bar">
         <button class="btn-key" id="btn_key_elite">Elite</button>
@@ -246,6 +259,11 @@
             <span class="stat-value" id="aht_monthly_display">0s / 0.0m</span>
         </div>
     </div>
+
+    <div class="footer-info">
+        📂 Archivo excel para verificación de portal cautivo: 
+        <span id="import_date_display">No importado</span>
+    </div>
 </div>
 
 <div id="modal_claves" class="modal-overlay hidden">
@@ -264,7 +282,7 @@
             <input type="text" id="edit_key_red">
         </div>
         <div class="form-group-modal">
-            <label>WhatsApp (Wts)</label>
+            <label>Wts-</label>
             <input type="text" id="edit_key_wts">
         </div>
         <div class="modal-actions">

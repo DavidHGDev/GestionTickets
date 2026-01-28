@@ -150,3 +150,34 @@ button#btn_reset { background: white; border: 1px solid #cbd5e1; padding: 14px; 
 .form-group-modal label { display: block; font-size: 0.8rem; margin-bottom: 4px; color: #64748b; }
 .form-group-modal input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+/* --- FIANL -- ESTILOS BOTONES-- CSS --- */
+
+/* Estados del Input MAC */
+.input-success input {
+    border-color: #22c55e !important;
+    background-color: #f0fdf4 !important;
+    color: #15803d !important;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2) !important;
+}
+.input-success label { color: #15803d !important; font-weight: bold; }
+
+.input-danger input {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+    color: #b91c1c !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+.input-danger label { color: #b91c1c !important; font-weight: bold; }
+
+/* Mensaje del Footer */
+.footer-info {
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-align: center;
+    font-style: italic;
+}
+.footer-info span { font-weight: 600; color: #64748b; }

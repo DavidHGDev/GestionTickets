@@ -41,7 +41,6 @@
         td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; vertical-align: middle; }
         tr:hover { background: #f0f9ff; }
         
-        /* Columna Acciones (Fija a la izquierda visualmente por orden) */
         th:first-child, td:first-child { width: 100px; text-align: center; background: #fff; }
         tr:hover td:first-child { background: #f0f9ff; }
 
@@ -79,9 +78,19 @@
         .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
         .form-group { margin-bottom: 5px; }
         .form-group label { display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 4px; font-weight: 600; }
+        
+        /* INPUTS & TEXTAREA ADAPTATIVO */
         .form-group input, .form-group textarea {
             width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9rem;
         }
+        /* ESTILO CLAVE PARA EL TEXTAREA AUTO-EXPANDIBLE */
+        .form-group textarea {
+            resize: vertical; 
+            min-height: 80px; 
+            overflow-y: hidden; /* Oculta scrollbar interno para que se vea limpio */
+            line-height: 1.4;
+        }
+
         .full-width { grid-column: 1 / -1; }
         .section-title { grid-column: 1 / -1; margin-top: 10px; font-size: 0.9rem; color: var(--primary); border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
 
@@ -165,7 +174,7 @@
 
             <div class="section-title">Observaciones</div>
             <div class="form-group full-width">
-                <textarea id="edit_obs" rows="4"></textarea>
+                <textarea id="edit_obs" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
             </div>
         </div>
 
@@ -178,5 +187,28 @@
 
 <script src="js/db.js"></script>
 <script src="js/data.js"></script>
+
+<script>
+    // Sobreescribimos la función original de abrirModal para añadir el ajuste de altura
+    // Esto es un "parche" para no tocar data.js, pero lo ideal es que esté en data.js
+    // Sin embargo, como data.js carga después, podemos usar un MutationObserver o evento.
+    
+    // Mejor opción: Evento delegado en data.js, pero para no tocarlo, usaremos el onfocus
+    const tx = document.getElementById('edit_obs');
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === "attributes" && mutation.attributeName === "class") {
+                if(document.getElementById('modal_edit').classList.contains('active')){
+                    setTimeout(() => {
+                        tx.style.height = 'auto'; 
+                        tx.style.height = (tx.scrollHeight + 5) + 'px';
+                    }, 50);
+                }
+            }
+        });
+    });
+    observer.observe(document.getElementById('modal_edit'), { attributes: true });
+</script>
+
 </body>
 </html>

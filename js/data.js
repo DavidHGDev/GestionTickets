@@ -201,3 +201,46 @@ function exportarExcel() {
     a.click();
     a.remove();
 }
+
+// 4. PROCESAR IMPORTACIÓN (CORREGIDO: Guarda en 'validacion_mac', NO en historial)
+async function procesarImportacion(datos) {
+    if (!datos || datos.length === 0) return alert("No se encontraron datos válidos.");
+
+    // Preguntar intención
+    const esValidacion = confirm(
+        `Se encontraron ${datos.length} registros.\n\n` +
+        `[ACEPTAR] = Es el archivo de MACs para VALIDACIÓN (Reemplaza el anterior).\n` +
+        `[CANCELAR] = Es un Backup de HISTORIAL (Restaura tickets antiguos).`
+    );
+
+    let tablaDestino = '';
+    
+    if (esValidacion) {
+        tablaDestino = 'validacion_mac'; // Nueva caja
+        // Limpiamos la basura anterior
+        await baseDatos.limpiar('validacion_mac');
+    } else {
+        tablaDestino = 'historial'; // Caja de tickets
+    }
+
+    let guardados = 0;
+    for (const reg of datos) {
+        if(!reg.id_unico) reg.id_unico = Date.now() + Math.random();
+        try {
+            await baseDatos.guardar(tablaDestino, reg);
+            guardados++;
+        } catch (e) { console.error(e); }
+    }
+
+    // Si fue validación, guardamos la fecha
+    if (esValidacion) {
+        try {
+            const fechaImport = new Date().toLocaleString();
+            await baseDatos.guardar('configuracion', { clave: 'fecha_importacion', valor: fechaImport });
+        } catch(e) {}
+        alert(`✅ Archivo de Validación actualizado.\n${guardados} registros de MACs cargados.`);
+    } else {
+        alert(`✅ Historial restaurado.\n${guardados} tickets recuperados.`);
+        cargarTabla(); // Solo refrescamos la tabla visual si tocamos el historial
+    }
+}
