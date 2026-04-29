@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARCHIVO: js/app.js - VERSIÓN FINAL (COPY MEJORADO + VALIDACIÓN + EXCEL)
+   ARCHIVO: js/app.js - VERSIÓN FINAL PRO (GPON, MAC VALIDATION, RACE FIX)
    ========================================================================== */
 
 /* 1. DATOS DE LISTAS */
@@ -24,16 +24,14 @@ let retomaStartTime = null;
 let proximaAlarmaSegundos = 45;  
 let tipoServicioActual = null;
 let misClaves = { elite: '', fenix: '', red: '', wts: '' };
-let listaValidacion = []; // Memoria para el archivo Excel importado
+let listaValidacion = []; 
 
 /* 3. REFERENCIAS DOM */
 const els = {
-    // Botones Superiores
     btnImport: document.getElementById('btn_import_data'),
     fileInput: document.getElementById('file_selector'),
     btnClear: document.getElementById('btn_clear_data'),
 
-    // Formulario
     id: document.getElementById('call_id'),
     cliente: document.getElementById('customer_name'),
     doc: document.getElementById('customer_doc'),
@@ -46,7 +44,6 @@ const els = {
     horario: document.getElementById('horario_falla'),
     obs: document.getElementById('observaciones'),
     
-    // Paneles y MAC
     pNet: document.getElementById('panel_internet'),
     pTv: document.getElementById('panel_tv'),
     soporteVel: document.getElementById('soporte_velocidad'),
@@ -57,7 +54,6 @@ const els = {
     tvQty: document.getElementById('tv_quantity'),
     tvCont: document.getElementById('tv_serials_container'),
     
-    // Checks
     portal: document.getElementById('check_portal_cautivo'),
     toggleNotif: document.getElementById('btn_toggle_notif'),
     checkNotif: document.getElementById('check_notif_db'),
@@ -68,7 +64,6 @@ const els = {
     lProd: document.getElementById('prod_options'),
     lFail: document.getElementById('fail_options'),
     
-    // B2B
     b2bRadios: document.querySelectorAll('input[name="b2b_option"]'),
     b2bPanel: document.getElementById('b2b_panel'),
     b2bContact: document.getElementById('b2b_contact'),
@@ -86,7 +81,6 @@ const els = {
     permisoPanel: document.getElementById('permiso_input_panel'),
     permisoTxt: document.getElementById('b2b_permiso_txt'),
 
-    // Timer, Footer y Modal
     timerPanel: document.getElementById('timer_panel'),
     dispTotal: document.getElementById('display_total'),
     dispCount: document.getElementById('display_countdown'),
@@ -121,7 +115,7 @@ document.querySelectorAll('.clear-btn').forEach(btn => {
         }
     });
 });
-els.obs.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
+if(els.obs) els.obs.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
 
 function setupToggle(btn, checkbox) {
     if(!btn || !checkbox) return;
@@ -138,7 +132,7 @@ function setupInput(inp) {
 /* 5. CASCADA INTELIGENTE */
 function fillList(list, arr) { list.innerHTML = ''; arr.forEach(v => { const o = document.createElement('option'); o.value = v; list.appendChild(o); }); }
 
-els.tech.addEventListener('change', (e) => {
+if(els.tech) els.tech.addEventListener('change', (e) => {
     const s = opcionesTiposervicio[e.target.value];
     els.prod.value = ''; els.fail.value = ''; els.lProd.innerHTML = ''; els.lFail.innerHTML = '';
     if (s && s.length > 0) { fillList(els.lProd, s); els.prod.value = s[0]; updateProductChain(s[0]); }
@@ -146,7 +140,7 @@ els.tech.addEventListener('change', (e) => {
 });
 
 function updateProductChain(prodName) { updateFail(prodName); togglePanels(prodName); }
-els.prod.addEventListener('change', (e) => { updateProductChain(e.target.value); });
+if(els.prod) els.prod.addEventListener('change', (e) => { updateProductChain(e.target.value); });
 
 function updateFail(prod) {
     els.fail.value = ''; els.lFail.innerHTML = '';
@@ -155,15 +149,16 @@ function updateFail(prod) {
     }
 }
 
-// --- LOGICA DE PANELES Y MAC ---
+// LÓGICA DE PANELES Y MAC
 function togglePanels(prod) {
     const p = (prod || '').toLowerCase();
     const t = (els.tech.value || '').toUpperCase();
     
-    els.pNet.classList.remove('visible'); 
-    els.pTv.classList.remove('visible'); 
+    if(els.pNet) els.pNet.classList.remove('visible'); 
+    if(els.pTv) els.pTv.classList.remove('visible'); 
     tipoServicioActual = null;
     
+    // Al cambiar panel, oculta y limpia la MAC de forma predeterminada
     if(els.macWrap) {
         els.macWrap.classList.add('hidden');
         els.macInp.value = '';
@@ -173,14 +168,14 @@ function togglePanels(prod) {
     setTimeout(() => {
         if (p.includes('internet')) { 
             tipoServicioActual = 'NET'; 
-            els.pNet.classList.add('visible'); 
+            if(els.pNet) els.pNet.classList.add('visible'); 
             if (t === 'HFC' && els.macWrap) {
                 els.macWrap.classList.remove('hidden');
             }
         } 
         else if (p.includes('tv') || p.includes('iptv') || p.includes('one')) { 
             tipoServicioActual = 'TV'; 
-            els.pTv.classList.add('visible'); 
+            if(els.pTv) els.pTv.classList.add('visible'); 
         }
     }, 50);
 }
@@ -190,7 +185,7 @@ function resetMacStyle() {
     els.macWrap.classList.remove('input-success', 'input-danger');
 }
 
-// --- VALIDACIÓN MAC ---
+// VALIDACIÓN MAC
 if(els.macInp) {
     els.macInp.addEventListener('input', (e) => {
         const rawValue = e.target.value.toUpperCase();
@@ -209,16 +204,16 @@ if(els.macInp) {
         if (encontrada) {
             els.macWrap.classList.remove('input-success');
             els.macWrap.classList.add('input-danger'); 
-            els.portal.checked = false; 
+            if(els.portal) els.portal.checked = false; 
         } else {
             els.macWrap.classList.remove('input-danger');
             els.macWrap.classList.add('input-success'); 
-            els.portal.checked = true; 
+            if(els.portal) els.portal.checked = true; 
         }
     });
 }
 
-els.tvQty.addEventListener('input', (e) => {
+if(els.tvQty) els.tvQty.addEventListener('input', (e) => {
     const n = parseInt(e.target.value) || 0; els.tvCont.innerHTML = '';
     if(n > 0 && n <= 10) {
         for(let i=1; i<=n; i++) {
@@ -231,9 +226,7 @@ els.tvQty.addEventListener('input', (e) => {
 
 /* 6. CARGA DE DATOS (FUNCIONES DE INICIO Y GESTIÓN DE ARCHIVOS) */
 if(els.btnImport && els.fileInput) {
-    els.btnImport.addEventListener('click', () => {
-        els.fileInput.click();
-    });
+    els.btnImport.addEventListener('click', () => els.fileInput.click());
 
     els.fileInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
@@ -245,7 +238,7 @@ if(els.btnImport && els.fileInput) {
             try {
                 const datos = csvAJson(contenido);
                 if(datos && datos.length > 0) {
-                    const confirmar = confirm(`Se encontraron ${datos.length} registros en el archivo.\n¿Deseas cargarlos como Lista de Validación MAC?`);
+                    const confirmar = confirm(`Se encontraron ${datos.length} registros.\n¿Cargarlos como Validación MAC?`);
                     if(confirmar) {
                         await baseDatos.limpiar('validacion_mac');
                         for (const reg of datos) {
@@ -254,16 +247,11 @@ if(els.btnImport && els.fileInput) {
                         }
                         const fechaImport = new Date().toLocaleString();
                         await baseDatos.guardar('configuracion', { clave: 'fecha_importacion', valor: fechaImport });
-                        
-                        alert("✅ Lista de Validación MAC actualizada correctamente.");
+                        alert("✅ Validación MAC actualizada.");
                         await cargarDatosValidacion(); 
                     }
-                } else {
-                    alert("El archivo parece estar vacío o tener un formato incorrecto.");
-                }
-            } catch (error) {
-                alert("Error leyendo el archivo: " + error);
-            }
+                } else { alert("El archivo está vacío o tiene un formato incorrecto."); }
+            } catch (error) { alert("Error leyendo archivo: " + error); }
             event.target.value = ''; 
         };
         reader.readAsText(file);
@@ -272,7 +260,7 @@ if(els.btnImport && els.fileInput) {
 
 if(els.btnClear) {
     els.btnClear.addEventListener('click', async () => {
-        if(confirm("⚠ ATENCIÓN: ¿Estás seguro de BORRAR TODO el historial de tickets locales?\n(La lista de validación MAC NO se borrará)")) {
+        if(confirm("⚠ ATENCIÓN: ¿Borrar TODO el historial local? (Validación MAC NO se borrará)")) {
             await baseDatos.limpiar('historial');
             alert("🗑️ Historial eliminado.");
             await actualizarMetricas();
@@ -302,59 +290,59 @@ function csvAJson(csvText) {
     return resultado;
 }
 
-// Cargar Claves
 async function cargarClaves() { 
     try { 
         const c = await baseDatos.leerUno('configuracion', 'claves_rapidas'); 
         if (c) misClaves = c.datos; 
-    } catch(e) { console.log("Error cargando claves:", e); } 
+    } catch(e) {} 
 }
 
-// Cargar Validación
 async function cargarDatosValidacion() {
     try {
         const conf = await baseDatos.leerUno('configuracion', 'fecha_importacion');
         if (conf && els.importDate) els.importDate.textContent = conf.valor;
-
         const datos = await baseDatos.leerTodo('validacion_mac');
         listaValidacion = datos; 
-        console.log(`Validación: ${listaValidacion.length} registros.`);
-    } catch(e) { console.log("Sin datos de validación"); }
+    } catch(e) {}
 }
 
 /* 7. B2B, CLAVES */
 els.b2bRadios.forEach(r => r.addEventListener('change', (e) => {
     if(e.target.value === 'si') els.b2bPanel.classList.add('visible'); else els.b2bPanel.classList.remove('visible');
 }));
-els.b2bDays.addEventListener('change', (e) => {
+if(els.b2bDays) els.b2bDays.addEventListener('change', (e) => {
     const val = e.target.value.toLowerCase();
     els.pSat.classList.add('hidden'); els.pSun.classList.add('hidden');
     if(val.includes('sábado')) els.pSat.classList.remove('hidden'); 
     if(val.includes('domingo')) { els.pSun.classList.remove('hidden'); els.pSat.classList.remove('hidden'); }
 });
-els.cSat.addEventListener('change', () => { if(els.cSat.checked) els.iSat.classList.remove('hidden'); else els.iSat.classList.add('hidden'); });
-els.cSun.addEventListener('change', () => { if(els.cSun.checked) els.iSun.classList.remove('hidden'); else els.iSun.classList.add('hidden'); });
+if(els.cSat) els.cSat.addEventListener('change', () => { if(els.cSat.checked) els.iSat.classList.remove('hidden'); else els.iSat.classList.add('hidden'); });
+if(els.cSun) els.cSun.addEventListener('change', () => { if(els.cSun.checked) els.iSun.classList.remove('hidden'); else els.iSun.classList.add('hidden'); });
 els.permisoRadios.forEach(r => r.addEventListener('change', (e) => {
     if(e.target.value === 'si') els.permisoPanel.classList.remove('hidden'); else els.permisoPanel.classList.add('hidden');
 }));
 
-els.btnMod.addEventListener('click', () => {
+if(els.btnMod) els.btnMod.addEventListener('click', () => {
     els.inElite.value = misClaves.elite || ''; els.inFenix.value = misClaves.fenix || '';
     els.inRed.value = misClaves.red || ''; els.inWts.value = misClaves.wts || '';
     els.modal.classList.remove('hidden');
 });
-els.btnCancelMod.addEventListener('click', () => els.modal.classList.add('hidden'));
-els.btnSaveMod.addEventListener('click', async () => {
+if(els.btnCancelMod) els.btnCancelMod.addEventListener('click', () => els.modal.classList.add('hidden'));
+if(els.btnSaveMod) els.btnSaveMod.addEventListener('click', async () => {
     misClaves = { elite: els.inElite.value, fenix: els.inFenix.value, red: els.inRed.value, wts: els.inWts.value };
     await baseDatos.guardar('configuracion', { clave: 'claves_rapidas', datos: misClaves });
     els.modal.classList.add('hidden');
     alert("Claves guardadas");
 });
 function copiarClave(key) { if(misClaves[key]) { navigator.clipboard.writeText(misClaves[key]); } else alert("Configura primero ⚙️"); }
-els.kElite.addEventListener('click', () => copiarClave('elite')); els.kFenix.addEventListener('click', () => copiarClave('fenix'));
-els.kRed.addEventListener('click', () => copiarClave('red')); els.kWts.addEventListener('click', () => copiarClave('wts'));
+if(els.kElite) els.kElite.addEventListener('click', () => copiarClave('elite')); 
+if(els.kFenix) els.kFenix.addEventListener('click', () => copiarClave('fenix'));
+if(els.kRed) els.kRed.addEventListener('click', () => copiarClave('red')); 
+if(els.kWts) els.kWts.addEventListener('click', () => copiarClave('wts'));
 
-/* 8. CRONÓMETRO */
+/* ==========================================================================
+   8. CRONÓMETRO (VALIDADO CONTRA PESTAÑAS EN SEGUNDO PLANO) Y TONO MODERNO
+   ========================================================================== */
 function actualizarReloj() {
     const now = Date.now();
     
@@ -364,84 +352,80 @@ function actualizarReloj() {
         if(els.dispTotal) els.dispTotal.textContent = fmtTime(totalSec);
     }
     
-    // TIEMPO AVISO
+    // TIEMPO AVISO (RETOMA)
     if (retomaStartTime) {
         const cycleSec = Math.floor((now - retomaStartTime) / 1000);
         let left = proximaAlarmaSegundos - cycleSec;
         
-        if(left < 0) left = 0;
-        
+        // Validación visual
         if(els.dispCount) {
-            els.dispCount.textContent = fmtTime(left);
-            if(left <= 10) els.dispCount.classList.add('danger'); 
+            els.dispCount.textContent = fmtTime(left > 0 ? left : 0);
+            if(left <= 10 && left > 0) els.dispCount.classList.add('danger'); 
             else els.dispCount.classList.remove('danger');
         }
-        if(left === 0) { 
+
+        // VALIDACIÓN DE INGENIERÍA: Usar <= 0 evita que el navegador 
+        // ignore la alarma si la pestaña estaba minimizada o inactiva.
+        if(left <= 0) { 
             playAlert(); 
             retomaStartTime = Date.now(); 
-            proximaAlarmaSegundos = 115; 
+            proximaAlarmaSegundos = 115; // Reinicia a 1 min 55 seg
         }
     }
 }
 
 function startTimer(manual = false) {
     if (timerRetoma && !manual) return;
-
+    
     if(els.timerPanel) els.timerPanel.classList.remove('hidden');
     if(timerRetoma) clearInterval(timerRetoma);
     
-    if (!horaInicioLlamada) {
-        horaInicioLlamada = Date.now();
-    }
-
-    if (manual) {
-        proximaAlarmaSegundos = 115;
-    } else {
-        proximaAlarmaSegundos = 45;
-    }
-
+    if (!horaInicioLlamada) horaInicioLlamada = Date.now();
+    
+    proximaAlarmaSegundos = manual ? 115 : 45;
     retomaStartTime = Date.now();
-
+    
     actualizarReloj(); 
     timerRetoma = setInterval(actualizarReloj, 1000);
 }
 
-els.id.addEventListener('input', () => { 
+if(els.id) els.id.addEventListener('input', () => { 
     if(els.id.value.trim().length > 0) startTimer(false); 
 });
-els.btnRefres.addEventListener('click', () => { 
-    startTimer(true); 
-});
+if(els.btnRefres) els.btnRefres.addEventListener('click', () => startTimer(true));
 
+// --- TONO DE NOTIFICACIÓN MODERNO ---
 let audioCtx;
 function playAlert() {
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if(audioCtx.state === 'suspended') audioCtx.resume();
     
     const t = audioCtx.currentTime;
-    const o = audioCtx.createOscillator(); 
-    const g = audioCtx.createGain(); 
     
-    o.connect(g); 
-    g.connect(audioCtx.destination);
+    // Tono 1: Ping inicial rápido
+    const osc1 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(800, t); // Frecuencia alta y limpia
+    gain1.gain.setValueAtTime(0, t);
+    gain1.gain.linearRampToValueAtTime(0.15, t + 0.02); // Sube volumen rápido
+    gain1.gain.linearRampToValueAtTime(0, t + 0.15); // Baja volumen rápido
+    osc1.connect(gain1); gain1.connect(audioCtx.destination);
+    osc1.start(t); osc1.stop(t + 0.15);
     
-    // CONFIGURACIÓN "CRISTAL SUAVE"
-    // 1. Frecuencia: Empieza en 880Hz (La5) y cae suavemente (Efecto Gota)
-    o.frequency.setValueAtTime(880, t); 
-    o.frequency.exponentialRampToValueAtTime(400, t + 1.5);
-    
-    // 2. Volumen: Muy suave (0.05) y desvanecimiento elegante
-    g.gain.setValueAtTime(0.05, t); // Aún más suave (5% volumen)
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
-    
-    // 3. Tipo de onda: Sine (La más dulce)
-    o.type = 'sine';
-    
-    o.start(t); 
-    o.stop(t + 1.5);
+    // Tono 2: Ping secundario más agudo (crea el efecto de "Doble Beep" moderno)
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1200, t + 0.15); // Más agudo
+    gain2.gain.setValueAtTime(0, t + 0.15);
+    gain2.gain.linearRampToValueAtTime(0.15, t + 0.17);
+    gain2.gain.linearRampToValueAtTime(0, t + 0.35);
+    osc2.connect(gain2); gain2.connect(audioCtx.destination);
+    osc2.start(t + 0.15); osc2.stop(t + 0.35);
 }
 
-/* 9. COPIAR DATOS (MEJORADO: MAC EN PORTAL OK) */
+/* 9. COPIAR DATOS */
 document.getElementById('btn_copy').addEventListener('click', () => {
     if(!els.id.value || !els.obs.value) return alert("Falta ID o Obs");
     let txt = `Observaciones: ${els.obs.value};\nID de la llamada: ${els.id.value};\n`;
@@ -450,7 +434,6 @@ document.getElementById('btn_copy').addEventListener('click', () => {
     add("ID prueba integrada SMNET", els.smnetInt.value); add("ID prueba unitaria SMNET", els.smnetUnit.value);
     add("Tecnología", els.tech.value); add("Servicio", els.prod.value); add("Dolor puntual", els.fail.value);
     
-    // LINEA DE MAC VALIDA PORTAL
     if(els.macInp && els.macInp.value.trim()) txt += `MAC: ${els.macInp.value.trim().toUpperCase()};\n`;
 
     if(tipoServicioActual === 'TV') {
@@ -460,16 +443,7 @@ document.getElementById('btn_copy').addEventListener('click', () => {
     add("Horario del evento o en donde más falla", els.horario.value);
     if(tipoServicioActual === 'NET') { const val = els.soporteVel.value || 'Si'; txt += `El equipo del usuario soporta la velocidad contratada: ${val};\n`; }
     
-    // --- AQUÍ ESTÁ EL CAMBIO SOLICITADO ---
-    if(els.portal.checked) {
-        let msg = "Se verifica portal Cautivo OK";
-        // Si hay una MAC escrita, la agregamos aquí también
-        // if(els.macInp && els.macInp.value.trim()) {
-        //     msg += `: MAC ${els.macInp.value.trim().toUpperCase()}`;
-        // }
-        txt += `${msg};\n`;
-    }
-    // --------------------------------------
+    if(els.portal && els.portal.checked) txt += "Se verifica portal Cautivo OK;\n";
 
     const isB2B = document.querySelector('input[name="b2b_option"]:checked').value === 'si';
     if(isB2B) {
@@ -518,28 +492,20 @@ document.getElementById('btn_reset').addEventListener('click', async () => {
         tipo_servicio: tipoServicioActual || 'N/A', tv_data: tvInfo, 
         duracion: horaInicioLlamada ? Number(((Date.now()-horaInicioLlamada)/1000).toFixed(2)) : 0
     };
-    try { await baseDatos.guardar('historial', reg); await actualizarMetricas(); console.log("Guardado"); } catch(e) { alert("Error: "+e); }
+    try { await baseDatos.guardar('historial', reg); await actualizarMetricas(); } catch(e) { alert("Error: "+e); }
     
-    horaInicioLlamada = null; 
-    timerRetoma = null;
-    
+    horaInicioLlamada = null; timerRetoma = null;
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"])').forEach(i => i.value = '');
     els.obs.value = ''; els.obs.style.height = 'auto'; els.tvCont.innerHTML = '';
     
-    els.pNet.classList.remove('visible'); 
-    els.pTv.classList.remove('visible'); 
-    els.b2bPanel.classList.remove('visible');
+    els.pNet.classList.remove('visible'); els.pTv.classList.remove('visible'); els.b2bPanel.classList.remove('visible');
+    if(els.macWrap) { els.macWrap.classList.add('hidden'); els.macInp.value = ''; resetMacStyle(); }
+    if(els.portal) els.portal.checked = false; 
     
-    if(els.macWrap) {
-        els.macWrap.classList.add('hidden');
-        els.macInp.value = '';
-        resetMacStyle();
-    }
-    els.portal.checked = false; 
-    
-    els.checkNotif.checked = false; els.toggleNotif.classList.remove('active'); 
-    els.checkVenta.checked = false; els.toggleVenta.classList.remove('active');
-    els.soporteVel.value = 'Si'; document.querySelector('input[name="b2b_option"][value="no"]').click();
+    if(els.checkNotif){els.checkNotif.checked = false; els.toggleNotif.classList.remove('active');} 
+    if(els.checkVenta){els.checkVenta.checked = false; els.toggleVenta.classList.remove('active');}
+    if(els.soporteVel) els.soporteVel.value = 'Si'; 
+    document.querySelector('input[name="b2b_option"][value="no"]').click();
     els.timerPanel.classList.add('hidden'); els.id.focus();
 });
 
@@ -548,32 +514,145 @@ async function actualizarMetricas() {
     try {
         if (!baseDatos.db) return;
         const historial = await baseDatos.leerTodo('historial');
-        const now = new Date();
-        const hoyString = now.toLocaleDateString(); 
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
+        const now = new Date(); const hoyString = now.toLocaleDateString(); 
+        const currentMonth = now.getMonth(); const currentYear = now.getFullYear();
 
-        let dailySum = 0, dailyCount = 0;
-        let monthlySum = 0, monthlyCount = 0;
-
+        let dailySum = 0, dailyCount = 0, monthlySum = 0, monthlyCount = 0;
         historial.forEach(r => {
-            const dur = Number(r.duracion) || 0;
-            const rDate = new Date(r.id_unico); 
+            const dur = Number(r.duracion) || 0; const rDate = new Date(r.id_unico); 
             if (r.fecha === hoyString) { dailySum += dur; dailyCount++; }
             if (rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear) { monthlySum += dur; monthlyCount++; }
         });
-
-        const dailyAvg = dailyCount > 0 ? dailySum / dailyCount : 0;
-        const monthlyAvg = monthlyCount > 0 ? monthlySum / monthlyCount : 0;
         const fmt = (s) => `${Math.round(s)}s / ${(s/60).toFixed(1)}m`;
-        
-        if(els.ahtDay) els.ahtDay.textContent = fmt(dailyAvg);
-        if(els.ahtMonth) els.ahtMonth.textContent = fmt(monthlyAvg);
-    } catch (e) { console.error("Error AHT:", e); }
+        if(els.ahtDay) els.ahtDay.textContent = fmt(dailyCount > 0 ? dailySum / dailyCount : 0);
+        if(els.ahtMonth) els.ahtMonth.textContent = fmt(monthlyCount > 0 ? monthlySum / monthlyCount : 0);
+    } catch (e) {}
 }
-
 function fmtTime(s) { return Math.floor(s/60).toString().padStart(2,'0')+":"+Math.floor(s%60).toString().padStart(2,'0'); }
 
+/* ==========================================================================
+   12. MÓDULO EXTRACCIÓN AUTOMÁTICA GENESYS / SMNET (SIN RACE CONDITION)
+   ========================================================================== */
+const inputGenesys = document.getElementById('genesys_raw_data');
+const btnExtraer = document.getElementById('btn_extraer_genesys');
+
+if(btnExtraer && inputGenesys) {
+    btnExtraer.addEventListener('click', (e) => {
+        e.preventDefault(); 
+        const txt = inputGenesys.value;
+        if (!txt || txt.trim() === '') return alert("⚠️ Pega el texto primero.");
+
+        // 1. Extraer ID
+        const matchId = txt.match(/INTERACTION ID:?[\s\r\n]+([\w\-]+)|ID de la llamada actual[\s\r\n]+([\w\-]+)/i);
+        const idEncontrado = (matchId && matchId[1]) ? matchId[1] : (matchId && matchId[2] ? matchId[2] : null);
+        if (idEncontrado) { els.id.value = idEncontrado.trim(); startTimer(false); }
+
+        // 2. Extraer Documento o NIT
+        const matchDoc = txt.match(/(?:Doc\/NIT|Identificación del cliente)[:\s\r\n]+(\d+)/i);
+        if (matchDoc && matchDoc[1]) els.doc.value = matchDoc[1].trim();
+
+        // 3. Extraer Nombre (Regla Estricta Única)
+        const matchNombre = txt.match(/(?:Nombre|Nombre del cliente)[:\s\r\n]+([^\r\n]+)/i);
+        if (matchNombre && matchNombre[1]) {
+            const posibleNombre = matchNombre[1].trim();
+            if (!/(Doc\/NIT|Identificación|Dirección|Código|Ciudad|ANI|del cliente)/i.test(posibleNombre)) {
+                els.cliente.value = posibleNombre;
+            }
+        }
+
+        // 4. Extraer Pruebas SMNET
+        const matchSmnetGenesys = txt.match(/Id SMNet:[\s\r\n]+(\d+)/i);
+        if (matchSmnetGenesys && matchSmnetGenesys[1]) els.smnetInt.value = matchSmnetGenesys[1].trim();
+        const matchSmnetInt = txt.match(/Prueba Integrada[\s\r\n]+(\d+)/i);
+        if (matchSmnetInt && matchSmnetInt[1]) els.smnetInt.value = matchSmnetInt[1].trim(); 
+        const matchSmnetUnit = txt.match(/Prueba Unitaria[\s\r\n]+(\d+)/i);
+        if (matchSmnetUnit && matchSmnetUnit[1]) els.smnetUnit.value = matchSmnetUnit[1].trim();
+
+        // 5. Extraer Celular / ANI
+        const matchCel = txt.match(/Celular[\s\r\n]+(\d{7,10})/i);
+        const matchAni = txt.match(/ANI[\s\r\n]+(\d{7,10})/i);
+        if (matchCel && matchCel[1]) els.cel.value = matchCel[1].trim();
+        else if (matchAni && matchAni[1]) els.cel.value = matchAni[1].trim(); 
+
+        // 6. Extraer Tecnología
+        const matchTech = txt.match(/\b(HFC|GPON|ADSL|REDCO)\b/i);
+        let tecDetectada = ''; 
+        if (matchTech && matchTech[1]) {
+            tecDetectada = matchTech[1].toUpperCase();
+            els.tech.value = tecDetectada;
+            els.tech.dispatchEvent(new Event('change')); 
+        }
+
+        // 7. Buscar Módem MAC / SN (Internet)
+        const matchMac = txt.match(/(?<!\-)\b([A-F0-9]{12}|(?:[A-F0-9]{2}:){5}[A-F0-9]{2})\b(?!\-)/i);
+        let macExtraida = null;
+        if (matchMac && matchMac[1]) {
+            macExtraida = matchMac[1].replace(/:/g, '').toUpperCase();
+        }
+
+        // 8. Buscar Decodificadores (IGNORANDO GPON TOTALMENTE)
+        const decoders = [];
+        if (tecDetectada !== 'GPON') {
+            const regexDeco = /(?:Decoder|Deco|STB|DECO\s+DTA|UIW4059MIL)[^\n\r]+/ig; 
+            let matchDeco;
+            while ((matchDeco = regexDeco.exec(txt)) !== null) {
+                const line = matchDeco[0];
+                const serials = line.match(/\b[A-Z0-9]{8,18}\b/g);
+                if (serials) {
+                    const validSerials = serials.filter(s => /[0-9]/.test(s));
+                    if(validSerials.length > 0) decoders.push(validSerials[0]); 
+                }
+            }
+        }
+
+        // 9. Lógica de Producto Dinámica
+        if (decoders.length > 0) {
+            els.prod.value = 'TV_Digital'; 
+            els.prod.dispatchEvent(new Event('change')); 
+        } else if (macExtraida || tecDetectada === 'GPON') {
+            els.prod.value = 'Internet';
+            els.prod.dispatchEvent(new Event('change'));
+        }
+
+        // 10. LA MAGIA ASÍNCRONA: Pegar datos después de renderizar el DOM
+        setTimeout(() => {
+            if (decoders.length > 0) {
+                els.tvQty.value = decoders.length;
+                els.tvQty.dispatchEvent(new Event('input'));
+                setTimeout(() => {
+                    const tvInputs = document.querySelectorAll('.tv-serial');
+                    decoders.forEach((decoSerial, index) => {
+                        if (tvInputs[index]) tvInputs[index].value = decoSerial;
+                    });
+                }, 50);
+            }
+
+            if (macExtraida) {
+                if(els.macWrap) els.macWrap.classList.remove('hidden');
+                els.macInp.value = macExtraida;
+                els.macInp.dispatchEvent(new Event('input')); 
+            }
+        }, 100);
+
+        // 11. Extraer Mensaje -> Observaciones
+        const matchMensaje = txt.match(/Mensaje Cliente:[\s\r\n]+([^\r\n]+)/i);
+        if (matchMensaje && matchMensaje[1]) {
+            const msg = matchMensaje[1].trim();
+            if (!/Meta AHT|Tratamiento/i.test(msg)) {
+                els.obs.value = msg;
+                els.obs.style.height = 'auto';
+                els.obs.style.height = els.obs.scrollHeight + 'px';
+            }
+        }
+
+        // Feedback visual final
+        inputGenesys.value = '';
+        inputGenesys.placeholder = "¡✅ Datos procesados con éxito!";
+        setTimeout(() => inputGenesys.placeholder = "⚡ Pega aquí el texto...", 3000);
+    });
+}
+
+// INICIALIZACIÓN
 async function init() { 
     fillList(els.lTech, Object.keys(opcionesTiposervicio)); 
     await baseDatos.iniciar(); 

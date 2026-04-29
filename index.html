@@ -71,18 +71,15 @@
 
     <div id="panel_internet" class="dynamic-panel">
         <div class="row col-2" style="margin-top:10px;">
-            
             <div class="floating-group">
                 <input type="text" id="soporte_velocidad" list="yes_no_options" value="Si" placeholder=" " autocomplete="off">
                 <label>¿Equipo Soporta Velocidad?</label>
                 <datalist id="yes_no_options"><option value="Si"><option value="No"></datalist>
             </div>
-            
             <div id="mac_wrapper" class="floating-group hidden">
                 <input type="text" id="mac_input" placeholder=" " autocomplete="off" style="text-transform:uppercase;">
                 <label>MAC Módem (HFC)</label>
             </div>
-
         </div>
     </div>
 
@@ -131,18 +128,20 @@
         <button id="btn_reset">💾 Guardar / Reset</button>
     </div>
 
-    <div class="management-row">
-        <label class="toggle-btn" id="btn_toggle_notif">
-            <input type="checkbox" id="check_notif_db">
-            <span>📩 Notif. Confirmada</span>
-        </label>
-        <label class="toggle-btn" id="btn_toggle_venta">
-            <input type="checkbox" id="check_venta_db">
-            <span>💰 Ofrecí Venta</span>
-        </label>
+    <div class="row" style="display: flex; gap: 10px; align-items: center; margin: 15px 0;">
+        <div class="floating-group" style="flex: 1; margin: 0;">
+            <textarea id="genesys_raw_data" placeholder=" " style="height: 42px; min-height: 42px; resize: none; overflow: hidden; padding-top: 12px; white-space: nowrap;"></textarea>
+            <label>...</label>
+        </div>
+        <button type="button" id="btn_extraer_genesys" style="background: #2563eb; color: white; border: none; padding: 0 20px; border-radius: 6px; cursor: pointer; font-weight: bold; height: 42px; white-space: nowrap;">Autocompletar</button>
     </div>
 
-    
+    <div style="display: none;">
+        <input type="checkbox" id="check_notif_db">
+        <input type="checkbox" id="check_venta_db">
+        <button id="btn_toggle_notif"></button>
+        <button id="btn_toggle_venta"></button>
+    </div>
 
     <div class="b2b-section">
         <div class="b2b-header">
@@ -154,7 +153,6 @@
         </div>
 
         <div id="b2b_panel" class="dynamic-panel" style="background: white; border-style: solid;">
-            
             <div class="row col-2" style="margin-top:10px;">
                 <div class="floating-group">
                     <input type="text" id="b2b_contact" placeholder=" " autocomplete="off">
@@ -232,8 +230,6 @@
             </div>
         </div>
     </div>
-
-    
 
     <div class="key-bar">
         <button class="btn-key" id="btn_key_elite">Elite</button>
