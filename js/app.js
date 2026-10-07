@@ -730,7 +730,7 @@ document.getElementById('btn_reset').addEventListener('click', async () => {
 });
 
 /* ==========================================================================
-   11. MÓDULO EXTRACCIÓN GENESYS / SMNET
+   11. MÓDULO EXTRACCIÓN GENESYS / SMNET (PROTECCIÓN CONTRA SOBREESCRITURA)
    ========================================================================== */
 const inputGenesys = document.getElementById('genesys_raw_data');
 const btnExtraer = document.getElementById('btn_extraer_genesys');
@@ -747,51 +747,67 @@ if(btnExtraer && inputGenesys) {
     btnExtraer.addEventListener('click', (e) => {
         e.preventDefault(); 
         const txt = inputGenesys.value;
-        if (!txt || txt.trim() === '') { showToast("Pega el texto primero.", "warning"); return; }
+        if (!txt || txt.trim() === '') { 
+            showToast("Pega el texto primero.", "warning"); 
+            return; 
+        }
 
-        // 🛡️ MEMORIA: GUARDAMOS LA MAC ACTUAL ANTES DE ANALIZAR NADA
+        // 🛡️ MEMORIA DE LA MAC: Guardamos la MAC actual antes de analizar nada
         const macActual = els.macInp.value;
 
+        // 1. Extraer ID (Blindado)
         const matchId = txt.match(/INTERACTION ID:?[\s\r\n]+([\w\-]+)|ID de la llamada actual[\s\r\n]+([\w\-]+)/i);
         const idEncontrado = (matchId && matchId[1]) ? matchId[1] : (matchId && matchId[2] ? matchId[2] : null);
-        if (idEncontrado) { els.id.value = idEncontrado.trim(); startTimer(false); }
+        if (idEncontrado && (!els.id.value || els.id.value.trim() === '')) { 
+            els.id.value = idEncontrado.trim(); 
+            startTimer(false); 
+        }
 
+        // 2. Extraer Documento o NIT (Blindado)
         const matchDoc = txt.match(/(?:Doc\/NIT|Identificación del cliente)[:\s\r\n]+(\d+)/i);
-        if (matchDoc && matchDoc[1]) els.doc.value = matchDoc[1].trim();
+        if (matchDoc && matchDoc[1] && (!els.doc.value || els.doc.value.trim() === '')) {
+            els.doc.value = matchDoc[1].trim();
+        }
 
+        // 3. Extraer Nombre (Blindado)
         const matchNombre = txt.match(/(?:Nombre|Nombre del cliente)[:\s\r\n]+([^\r\n]+)/i);
-        if (matchNombre && matchNombre[1]) {
+        if (matchNombre && matchNombre[1] && (!els.cliente.value || els.cliente.value.trim() === '')) {
             const posibleNombre = matchNombre[1].trim();
             if (!/(Doc\/NIT|Identificación|Dirección|Código|Ciudad|ANI|del cliente)/i.test(posibleNombre)) {
                 els.cliente.value = posibleNombre;
             }
         }
 
-        // --- PRUEBAS SMNET (Con corrección de minúscula) ---
-        const matchSmnetGenesys = txt.match(/Id SMNet:[\s\r\n]+(\d+)/i);
-        if (matchSmnetGenesys && matchSmnetGenesys[1]) els.smnetInt.value = matchSmnetGenesys[1].trim();
-        const matchSmnetInt = txt.match(/Prueba Integrada[\s\r\n]+(\d+)/i);
-        if (matchSmnetInt && matchSmnetInt[1]) els.smnetInt.value = matchSmnetInt[1].trim(); 
-        
-        const matchSmnetUnit = txt.match(/Prueba Unitaria:?[\s\r\n]+(\d+)/i) || txt.match(/Prueba integrada:?[\s\r\n]+(\d+)/);
-        if (matchSmnetUnit && matchSmnetUnit[1]) els.smnetUnit.value = matchSmnetUnit[1].trim();
+        // 4. Extraer Pruebas SMNET (Blindadas individualmente)
+        if (!els.smnetInt.value || els.smnetInt.value.trim() === '') {
+            const matchSmnetGenesys = txt.match(/Id SMNet:[\s\r\n]+(\d+)/i);
+            const matchSmnetInt = txt.match(/Prueba Integrada[\s\r\n]+(\d+)/i);
+            if (matchSmnetGenesys && matchSmnetGenesys[1]) els.smnetInt.value = matchSmnetGenesys[1].trim();
+            else if (matchSmnetInt && matchSmnetInt[1]) els.smnetInt.value = matchSmnetInt[1].trim(); 
+        }
 
-        const matchCel = txt.match(/Celular[\s\r\n]+(\d{7,10})/i);
-        const matchAni = txt.match(/ANI[\s\r\n]+(\d{7,10})/i);
-        if (matchCel && matchCel[1]) els.cel.value = matchCel[1].trim();
-        else if (matchAni && matchAni[1]) els.cel.value = matchAni[1].trim(); 
+        if (!els.smnetUnit.value || els.smnetUnit.value.trim() === '') {
+            const matchSmnetUnit = txt.match(/Prueba Unitaria:?[\s\r\n]+(\d+)/i) || txt.match(/Prueba integrada:?[\s\r\n]+(\d+)/);
+            if (matchSmnetUnit && matchSmnetUnit[1]) els.smnetUnit.value = matchSmnetUnit[1].trim();
+        }
 
-        // --- INTELIGENCIA DE PANELES (Evita que se reinicie y borre datos) ---
+        // 5. Extraer Celular / ANI (Blindado)
+        if (!els.cel.value || els.cel.value.trim() === '') {
+            const matchCel = txt.match(/Celular[\s\r\n]+(\d{7,10})/i);
+            const matchAni = txt.match(/ANI[\s\r\n]+(\d{7,10})/i);
+            if (matchCel && matchCel[1]) els.cel.value = matchCel[1].trim();
+            else if (matchAni && matchAni[1]) els.cel.value = matchAni[1].trim(); 
+        }
+
+        // --- INTELIGENCIA DE TECNOLOGÍA ---
         const matchTech = txt.match(/\b(HFC|GPON|ADSL|REDCO)\b/i);
-        let tecDetectada = els.tech.value; // Por defecto mantiene la tecnología que ya tenías seleccionada
+        let tecDetectada = els.tech.value; 
         
-        if (matchTech && matchTech[1]) {
+        // Solo autocompleta la tecnología si actualmente está en blanco
+        if (matchTech && matchTech[1] && (!els.tech.value || els.tech.value.trim() === '')) {
             const nuevaTec = matchTech[1].toUpperCase();
-            // Solo disparamos el evento "change" si la tecnología es diferente a la que ya estaba
-            if (els.tech.value !== nuevaTec) {
-                els.tech.value = nuevaTec;
-                els.tech.dispatchEvent(new Event('change')); 
-            }
+            els.tech.value = nuevaTec;
+            els.tech.dispatchEvent(new Event('change')); 
             tecDetectada = nuevaTec;
         }
 
@@ -813,6 +829,7 @@ if(btnExtraer && inputGenesys) {
             }).catch(err => console.error('Error copiando al portapapeles: ', err));
         }
 
+        // --- EXTRACCIÓN DE DECOS TV ---
         const decoders = [];
         if (tecDetectada !== 'GPON') {
             const regexDeco = /(?:Decoder|Deco|STB|DECO\s+DTA|UIW4059MIL)[^\n\r]+/ig; 
@@ -828,13 +845,11 @@ if(btnExtraer && inputGenesys) {
         }
 
         if (decoders.length > 0) {
-            // Solo cambia el producto si no estaba ya en TV (evita el parpadeo/reseteo)
             if (els.prod.value !== 'TV_Digital') {
                 els.prod.value = 'TV_Digital'; 
                 els.prod.dispatchEvent(new Event('change')); 
             }
         } else if (macExtraida || tecDetectada === 'GPON') {
-            // Solo cambia el producto si no estaba ya en Internet
             if (els.prod.value !== 'Internet') {
                 els.prod.value = 'Internet';
                 els.prod.dispatchEvent(new Event('change'));
@@ -843,50 +858,54 @@ if(btnExtraer && inputGenesys) {
 
         // TIEMPO EXACTO: 500ms
         setTimeout(() => {
-            if (tecDetectada) els.tech.value = tecDetectada;
-
             if (decoders.length > 0) {
-                els.tvQty.value = decoders.length;
-                els.tvQty.dispatchEvent(new Event('input'));
-                setTimeout(() => {
-                    const tvInputs = document.querySelectorAll('.tv-serial');
-                    decoders.forEach((decoSerial, index) => {
-                        if (tvInputs[index]) tvInputs[index].value = decoSerial;
-                    });
-                }, 50);
+                // Si la cantidad de TVs está vacía, se llena. Si ya habías llenado TVs, se respeta.
+                if (!els.tvQty.value || els.tvQty.value === '0') {
+                    els.tvQty.value = decoders.length;
+                    els.tvQty.dispatchEvent(new Event('input'));
+                    setTimeout(() => {
+                        const tvInputs = document.querySelectorAll('.tv-serial');
+                        decoders.forEach((decoSerial, index) => {
+                            if (tvInputs[index]) tvInputs[index].value = decoSerial;
+                        });
+                    }, 50);
+                }
             }
 
-            // 🛡️ MAGIA DE RESTAURACIÓN DE LA MAC 
+            // 🛡️ MAGIA DE RESTAURACIÓN DE LA MAC (PROTECCIÓN TOTAL)
             if (els.prod.value === 'Internet') {
                 if(els.macWrap) els.macWrap.classList.remove('hidden');
                 
-                if (macExtraida) {
-                    // Si el texto nuevo traía una MAC, pone la nueva
-                    els.macInp.value = macExtraida;
-                    els.macInp.dispatchEvent(new Event('input')); 
-                } else if (macActual) {
-                    // Si el texto nuevo NO traía MAC, pero ya tenías una antes... ¡la restaura!
+                if (macActual && macActual.trim() !== '') {
+                    // YA HABÍA UNA MAC: Se respeta absolutamente y no se toca, incluso si se encontró una distinta
                     els.macInp.value = macActual;
+                    els.macInp.dispatchEvent(new Event('input')); 
+                } else if (macExtraida) {
+                    // Estaba vacío y encontramos una nueva
+                    els.macInp.value = macExtraida;
                     els.macInp.dispatchEvent(new Event('input')); 
                 }
             }
         }, 500);
 
-        const matchMensaje = txt.match(/Mensaje Cliente:[\s\r\n]+([^\r\n]+)/i);
-        if (matchMensaje && matchMensaje[1]) {
-            const msg = matchMensaje[1].trim();
-            if (!/Meta AHT|Tratamiento/i.test(msg)) {
-                els.obs.value = msg;
-                els.obs.style.height = 'auto';
-                els.obs.style.height = els.obs.scrollHeight + 'px';
+        // 11. Extraer Mensaje -> Observaciones (Blindado)
+        if (!els.obs.value || els.obs.value.trim() === '') {
+            const matchMensaje = txt.match(/Mensaje Cliente:[\s\r\n]+([^\r\n]+)/i);
+            if (matchMensaje && matchMensaje[1]) {
+                const msg = matchMensaje[1].trim();
+                if (!/Meta AHT|Tratamiento/i.test(msg)) {
+                    els.obs.value = msg;
+                    els.obs.style.height = 'auto';
+                    els.obs.style.height = els.obs.scrollHeight + 'px';
+                }
             }
         }
 
+        // Feedback visual
         inputGenesys.value = '';
         inputGenesys.placeholder = "¡✅ Datos procesados con éxito!";
         
         inputGenesys.focus();
-        
         setTimeout(() => inputGenesys.placeholder = "⚡ Pega aquí el texto...", 3000);
     });
 }
