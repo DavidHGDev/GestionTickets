@@ -240,9 +240,20 @@
         <button class="btn-key mod" id="btn_key_refres">⏱️</button>
     </div>
 
-    <div id="timer_panel" class="timer-panel hidden">
-        <div>Total: <span id="display_total">00:00</span></div>
-        <div>Aviso: <span id="display_countdown">00:00</span></div>
+    <!-- CUADRO EMERGENTE FLOTANTE (CRONÓMETRO) OPTIMIZADO -->
+    <div id="timer_widget" class="timer-widget hidden">
+        <div id="timer_drag_header" class="timer-header">
+            <span>⏱️ Cronómetro</span>
+            <!-- Nuevo botón para extraer la ventana -->
+            <span id="btn_undock_timer" style="cursor:pointer; margin-left:10px;" title="Extraer a ventana de Windows/Mac">🪟</span>
+        </div>
+        <div class="timer-content">
+            <div class="time-info">
+                <div class="time-row">Total: <span id="display_total">00:00</span></div>
+                <div class="time-row">Aviso: <span id="display_countdown" class="countdown">00:00</span></div>
+            </div>
+            <button type="button" id="btn_reset_countdown" class="btn-reset-timer" title="Reiniciar Contador">🔄</button>
+        </div>
     </div>
     
     <div class="stats-container">

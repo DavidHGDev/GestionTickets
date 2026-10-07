@@ -81,7 +81,10 @@ const els = {
     permisoPanel: document.getElementById('permiso_input_panel'),
     permisoTxt: document.getElementById('b2b_permiso_txt'),
 
-    timerPanel: document.getElementById('timer_panel'),
+    //timerPanel: document.getElementById('timer_panel'),
+    timerWidget: document.getElementById('timer_widget'),
+    timerDragHeader: document.getElementById('timer_drag_header'),
+    btnResetCount: document.getElementById('btn_reset_countdown'),
     dispTotal: document.getElementById('display_total'),
     dispCount: document.getElementById('display_countdown'),
     btnRefres: document.getElementById('btn_key_refres'),
@@ -345,39 +348,127 @@ if(els.kWts) els.kWts.addEventListener('click', () => copiarClave('wts'));
    ========================================================================== */
 function actualizarReloj() {
     const now = Date.now();
+    let totalSec = 0;
+    let left = 0;
     
-    // TIEMPO TOTAL
+    // TIEMPO TOTAL EN MINUTOS:SEGUNDOS
     if (horaInicioLlamada) {
-        const totalSec = Math.floor((now - horaInicioLlamada) / 1000);
-        if(els.dispTotal) els.dispTotal.textContent = fmtTime(totalSec);
+        totalSec = Math.floor((now - horaInicioLlamada) / 1000);
+        if(els.dispTotal) els.dispTotal.textContent = fmtTime(totalSec); 
     }
     
     // TIEMPO AVISO (RETOMA)
     if (retomaStartTime) {
         const cycleSec = Math.floor((now - retomaStartTime) / 1000);
-        let left = proximaAlarmaSegundos - cycleSec;
+        left = proximaAlarmaSegundos - cycleSec;
         
-        // Validación visual
         if(els.dispCount) {
             els.dispCount.textContent = fmtTime(left > 0 ? left : 0);
             if(left <= 10 && left > 0) els.dispCount.classList.add('danger'); 
             else els.dispCount.classList.remove('danger');
         }
 
-        // VALIDACIÓN DE INGENIERÍA: Usar <= 0 evita que el navegador 
-        // ignore la alarma si la pestaña estaba minimizada o inactiva.
         if(left <= 0) { 
             playAlert(); 
             retomaStartTime = Date.now(); 
-            proximaAlarmaSegundos = 115; // Reinicia a 1 min 55 seg
+            proximaAlarmaSegundos = 115; 
+        }
+    }
+
+    // --- SINCRONIZAR CON LA VENTANA SIEMPRE VISIBLE (PiP) ---
+    if (pipWindow) {
+        const pTotal = pipWindow.document.getElementById('pop_total');
+        const pCount = pipWindow.document.getElementById('pop_count');
+        
+        if(pTotal) pTotal.textContent = fmtTime(totalSec);
+        if(pCount) {
+            pCount.textContent = fmtTime(left > 0 ? left : 0);
+            if(left <= 10 && left > 0) pCount.classList.add('danger');
+            else pCount.classList.remove('danger');
         }
     }
 }
 
+// --- LÓGICA PARA VENTANA "SIEMPRE POR ENCIMA" (Document PiP) ---
+let pipWindow = null;
+const btnUndock = document.getElementById('btn_undock_timer');
+
+if(btnUndock) {
+    btnUndock.addEventListener('click', async () => {
+        // Verificamos si el navegador (Brave/Chrome/Edge) soporta la función Always on Top (PiP)
+        if ('documentPictureInPicture' in window) {
+            if (pipWindow) return; // Si ya está abierta, no hace nada
+
+            try {
+                // Abre una ventana PiP (Siempre visible, sin barras de navegador)
+                pipWindow = await window.documentPictureInPicture.requestWindow({
+                    width: 180,
+                    height: 110
+                });
+
+                // Le inyectamos estilos muy limpios y blancos para que no sea un cuadro negro
+                const style = pipWindow.document.createElement('style');
+                style.textContent = `
+                    body { 
+                        background: #f8fafc; /* Color blanco/grisáceo muy limpio */
+                        color: #334155; 
+                        font-family: 'Segoe UI', sans-serif; 
+                        display: flex; flex-direction: column; 
+                        align-items: center; justify-content: center; 
+                        height: 100vh; margin: 0; user-select: none; 
+                    }
+                    .time-row { font-size: 0.85rem; margin-bottom: 8px; color: #64748b; display:flex; width: 130px; justify-content: space-between; align-items:center; }
+                    .time-row span { font-weight: bold; color: #0f172a; font-size: 1.15rem; font-family: monospace; }
+                    .danger { color: #ef4444 !important; animation: blink 1s infinite; }
+                    @keyframes blink { 50% { opacity: 0.5; } }
+                    .btn { background: #3b82f6; color: white; border: none; border-radius: 50%; width: 34px; height: 34px; display:flex; align-items:center; justify-content:center; cursor: pointer; font-size: 1.1rem; margin-top: 5px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                    .btn:hover { background: #2563eb; transform: rotate(180deg); }
+                `;
+                pipWindow.document.head.appendChild(style);
+
+                // Inyectamos el HTML del contador
+                pipWindow.document.body.innerHTML = `
+                    <div class="time-row">Total: <span id="pop_total">00:00</span></div>
+                    <div class="time-row">Aviso: <span id="pop_count">00:00</span></div>
+                    <button class="btn" id="pop_reset" title="Reiniciar Contador">🔄</button>
+                `;
+
+                // Logica del botón reiniciar
+                pipWindow.document.getElementById('pop_reset').addEventListener('click', () => {
+                    window.reiniciarContadorDesdePopout();
+                });
+
+                // Ocultamos el widget original de la página
+                els.timerWidget.classList.add('hidden');
+
+                // Si el usuario cierra la ventanita PiP, restauramos el widget original
+                pipWindow.addEventListener('pagehide', () => {
+                    pipWindow = null;
+                    if(horaInicioLlamada) els.timerWidget.classList.remove('hidden');
+                });
+
+                actualizarReloj();
+            } catch (error) {
+                console.error("Error al iniciar PiP:", error);
+                alert("Tu navegador bloqueó la ventana superpuesta o hubo un error.");
+            }
+        } else {
+            alert("Tu navegador no soporta la función 'Siempre por Encima'. Usa Chrome, Edge o Brave actualizados.");
+        }
+    });
+}
+
+// Función expuesta para resetear desde la ventanita
+window.reiniciarContadorDesdePopout = function() {
+    retomaStartTime = Date.now();
+    proximaAlarmaSegundos = 115;
+    actualizarReloj();
+};
+
 function startTimer(manual = false) {
     if (timerRetoma && !manual) return;
     
-    if(els.timerPanel) els.timerPanel.classList.remove('hidden');
+    if(els.timerWidget) els.timerWidget.classList.remove('hidden');
     if(timerRetoma) clearInterval(timerRetoma);
     
     if (!horaInicioLlamada) horaInicioLlamada = Date.now();
@@ -393,6 +484,43 @@ if(els.id) els.id.addEventListener('input', () => {
     if(els.id.value.trim().length > 0) startTimer(false); 
 });
 if(els.btnRefres) els.btnRefres.addEventListener('click', () => startTimer(true));
+
+// --- Lógica del botón Reiniciar solo el contador ---
+if(els.btnResetCount) {
+    els.btnResetCount.addEventListener('click', () => {
+        retomaStartTime = Date.now();
+        proximaAlarmaSegundos = 115; // Reinicia el aviso pero deja el total intacto
+        actualizarReloj();
+    });
+}
+
+// --- Lógica para arrastrar el cuadro emergente ---
+let isDraggingTimer = false, offsetTimerX, offsetTimerY;
+if(els.timerDragHeader && els.timerWidget) {
+    els.timerDragHeader.addEventListener('mousedown', (e) => {
+        isDraggingTimer = true;
+        const rect = els.timerWidget.getBoundingClientRect();
+        
+        // Evitar conflictos con top/right/bottom/left de css fijando coords absolutas
+        els.timerWidget.style.right = 'auto';
+        els.timerWidget.style.bottom = 'auto';
+        els.timerWidget.style.left = rect.left + 'px';
+        els.timerWidget.style.top = rect.top + 'px';
+        
+        offsetTimerX = e.clientX - rect.left;
+        offsetTimerY = e.clientY - rect.top;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDraggingTimer) return;
+        els.timerWidget.style.left = (e.clientX - offsetTimerX) + 'px';
+        els.timerWidget.style.top = (e.clientY - offsetTimerY) + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDraggingTimer = false;
+    });
+}
 
 // --- TONO DE NOTIFICACIÓN MODERNO ---
 let audioCtx;
@@ -506,7 +634,8 @@ document.getElementById('btn_reset').addEventListener('click', async () => {
     if(els.checkVenta){els.checkVenta.checked = false; els.toggleVenta.classList.remove('active');}
     if(els.soporteVel) els.soporteVel.value = 'Si'; 
     document.querySelector('input[name="b2b_option"][value="no"]').click();
-    els.timerPanel.classList.add('hidden'); els.id.focus();
+    if (els.timerWidget) els.timerWidget.classList.add('hidden');
+    els.id.focus();
 });
 
 /* 11. AHT & INIT */
