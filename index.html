@@ -140,7 +140,7 @@
         <input type="checkbox" id="check_notif_db">
         <input type="checkbox" id="check_venta_db">
         <button id="btn_toggle_notif"></button>
-        <button id="btn_toggle_venta"></button>
+        <button id="btn_toggle_ventas"></button>
     </div>
 
     <div class="b2b-section">
@@ -238,14 +238,14 @@
         <button class="btn-key" id="btn_key_wts">Wts</button>
         <button class="btn-key mod" id="btn_key_mod">⚙️</button>
         <button class="btn-key mod" id="btn_key_refres">⏱️</button>
+        <button class="btn-key" id="btn_toggle_venta" title="Marcar venta ofrecida">Venta</button>
     </div>
 
-    <!-- CUADRO EMERGENTE FLOTANTE (CRONÓMETRO) OPTIMIZADO -->
+    <!-- CUADRO EMERGENTE FLOTANTE (CRONÓMETRO) -->
     <div id="timer_widget" class="timer-widget hidden">
         <div id="timer_drag_header" class="timer-header">
             <span>⏱️ Cronómetro</span>
-            <!-- Nuevo botón para extraer la ventana -->
-            <span id="btn_undock_timer" style="cursor:pointer; margin-left:10px;" title="Extraer a ventana de Windows/Mac">🪟</span>
+            <span id="btn_undock_timer" style="cursor:pointer; margin-left:10px;" title="Extraer a ventana siempre visible (PiP)">🪟</span>
         </div>
         <div class="timer-content">
             <div class="time-info">
@@ -278,19 +278,19 @@
         <h3 style="margin-bottom:15px; color:#1e3a8a;">Configurar Claves</h3>
         <div class="form-group-modal">
             <label>Elite</label>
-            <input type="text" id="edit_key_elite">
+            <input type="password" id="edit_key_elite">
         </div>
         <div class="form-group-modal">
             <label>Fenix</label>
-            <input type="text" id="edit_key_fenix">
+            <input type="password" id="edit_key_fenix">
         </div>
         <div class="form-group-modal">
             <label>Red</label>
-            <input type="text" id="edit_key_red">
+            <input type="password" id="edit_key_red">
         </div>
         <div class="form-group-modal">
             <label>Wts-</label>
-            <input type="text" id="edit_key_wts">
+            <input type="password" id="edit_key_wts">
         </div>
         <div class="modal-actions">
             <button id="btn_cancelar_modal" class="btn-key">Cancelar</button>

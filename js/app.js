@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ARCHIVO: js/app.js - VERSIÓN FINAL PRO (GPON, MAC VALIDATION, RACE FIX)
+   ARCHIVO: js/app.js - VERSIÓN DEFINITIVA (REPARACIÓN HORARIOS B2B Y COPIADO)
    ========================================================================== */
 
 /* 1. DATOS DE LISTAS */
@@ -9,6 +9,7 @@ const opcionesTiposervicio = {
     'REDCO': ['Internet', 'Telefonía', 'TV_Digital'],
     'ADSL': ['Internet', 'IPTV', 'Telefonía', 'One_TV_2.0']
 };
+
 const opcionesNaturaleza = {
     'Internet': ['No navega', 'Navegación Lenta', 'Servicio Intermitente', 'Problemas WiFi', 'Configuracion WIFI', 'Cambio de Clave'],
     'Telefonía': ['No funciona línea', 'Servicio Intermitente', 'Mala Calidad Voz', 'Entrecortada', 'No salen/entran llamadas', 'Deco no enciende'],
@@ -81,7 +82,6 @@ const els = {
     permisoPanel: document.getElementById('permiso_input_panel'),
     permisoTxt: document.getElementById('b2b_permiso_txt'),
 
-    //timerPanel: document.getElementById('timer_panel'),
     timerWidget: document.getElementById('timer_widget'),
     timerDragHeader: document.getElementById('timer_drag_header'),
     btnResetCount: document.getElementById('btn_reset_countdown'),
@@ -118,18 +118,37 @@ document.querySelectorAll('.clear-btn').forEach(btn => {
         }
     });
 });
+
 if(els.obs) els.obs.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; });
 
 function setupToggle(btn, checkbox) {
     if(!btn || !checkbox) return;
-    checkbox.addEventListener('change', () => { if(checkbox.checked) btn.classList.add('active'); else btn.classList.remove('active'); });
+    
+    // Le decimos al botón que al darle clic, cambie el estado y se ponga verde
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        checkbox.checked = !checkbox.checked;
+        if(checkbox.checked) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // Mantenemos la lógica de reset para cuando guardes el ticket
+    checkbox.addEventListener('change', () => { 
+        if(checkbox.checked) btn.classList.add('active'); 
+        else btn.classList.remove('active'); 
+    });
 }
+
 setupToggle(els.toggleNotif, els.checkNotif); setupToggle(els.toggleVenta, els.checkVenta);
 
 function setupInput(inp) {
     if(!inp) return;
     inp.addEventListener('click', function() { if (typeof this.showPicker === 'function') { try { this.showPicker(); } catch(e){} } });
 }
+
 [els.tech, els.prod, els.fail, els.horario, els.b2bDays, els.b2bStart, els.b2bEnd].forEach(setupInput);
 
 /* 5. CASCADA INTELIGENTE */
@@ -143,6 +162,7 @@ if(els.tech) els.tech.addEventListener('change', (e) => {
 });
 
 function updateProductChain(prodName) { updateFail(prodName); togglePanels(prodName); }
+
 if(els.prod) els.prod.addEventListener('change', (e) => { updateProductChain(e.target.value); });
 
 function updateFail(prod) {
@@ -152,16 +172,13 @@ function updateFail(prod) {
     }
 }
 
-// LÓGICA DE PANELES Y MAC
 function togglePanels(prod) {
     const p = (prod || '').toLowerCase();
-    const t = (els.tech.value || '').toUpperCase();
     
     if(els.pNet) els.pNet.classList.remove('visible'); 
     if(els.pTv) els.pTv.classList.remove('visible'); 
     tipoServicioActual = null;
     
-    // Al cambiar panel, oculta y limpia la MAC de forma predeterminada
     if(els.macWrap) {
         els.macWrap.classList.add('hidden');
         els.macInp.value = '';
@@ -172,9 +189,7 @@ function togglePanels(prod) {
         if (p.includes('internet')) { 
             tipoServicioActual = 'NET'; 
             if(els.pNet) els.pNet.classList.add('visible'); 
-            if (t === 'HFC' && els.macWrap) {
-                els.macWrap.classList.remove('hidden');
-            }
+            if (els.macWrap) els.macWrap.classList.remove('hidden');
         } 
         else if (p.includes('tv') || p.includes('iptv') || p.includes('one')) { 
             tipoServicioActual = 'TV'; 
@@ -188,16 +203,11 @@ function resetMacStyle() {
     els.macWrap.classList.remove('input-success', 'input-danger');
 }
 
-// VALIDACIÓN MAC
 if(els.macInp) {
     els.macInp.addEventListener('input', (e) => {
         const rawValue = e.target.value.toUpperCase();
         const mac = rawValue.replace(/[^A-Z0-9]/g, ''); 
-        
-        if (mac.length < 4) { 
-            resetMacStyle();
-            return;
-        }
+        if (mac.length < 4) { resetMacStyle(); return; }
         
         const encontrada = listaValidacion.some(registro => {
             const dataStr = JSON.stringify(registro).toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -205,12 +215,10 @@ if(els.macInp) {
         });
 
         if (encontrada) {
-            els.macWrap.classList.remove('input-success');
-            els.macWrap.classList.add('input-danger'); 
+            els.macWrap.classList.remove('input-success'); els.macWrap.classList.add('input-danger'); 
             if(els.portal) els.portal.checked = false; 
         } else {
-            els.macWrap.classList.remove('input-danger');
-            els.macWrap.classList.add('input-success'); 
+            els.macWrap.classList.remove('input-danger'); els.macWrap.classList.add('input-success'); 
             if(els.portal) els.portal.checked = true; 
         }
     });
@@ -227,7 +235,9 @@ if(els.tvQty) els.tvQty.addEventListener('input', (e) => {
     }
 });
 
-/* 6. CARGA DE DATOS (FUNCIONES DE INICIO Y GESTIÓN DE ARCHIVOS) */
+/* ==========================================================================
+   6. GESTIÓN DE ARCHIVOS Y MACS
+   ========================================================================== */
 if(els.btnImport && els.fileInput) {
     els.btnImport.addEventListener('click', () => els.fileInput.click());
 
@@ -253,8 +263,12 @@ if(els.btnImport && els.fileInput) {
                         alert("✅ Validación MAC actualizada.");
                         await cargarDatosValidacion(); 
                     }
-                } else { alert("El archivo está vacío o tiene un formato incorrecto."); }
-            } catch (error) { alert("Error leyendo archivo: " + error); }
+                } else { 
+                    alert("El archivo está vacío o tiene un formato incorrecto."); 
+                }
+            } catch (error) { 
+                alert("Error leyendo archivo: " + error); 
+            }
             event.target.value = ''; 
         };
         reader.readAsText(file);
@@ -272,17 +286,20 @@ if(els.btnClear) {
 }
 
 function csvAJson(csvText) {
-    if(csvText.trim().startsWith('[') || csvText.trim().startsWith('{')) {
-        try { return JSON.parse(csvText); } catch(e) { return []; }
+    const cleanText = csvText.replace(/\r/g, '');
+    if(cleanText.trim().startsWith('[') || cleanText.trim().startsWith('{')) {
+        try { return JSON.parse(cleanText); } catch(e) { return []; }
     }
-    const lineas = csvText.split('\n').filter(l => l.trim() !== '');
-    if (lineas.length < 2) return [];
+    const lineas = cleanText.split('\n').filter(l => l.trim() !== '');
+    if (lineas.length === 0) return [];
+    if (!lineas[0].includes(';') && !lineas[0].includes(',')) {
+        return lineas.map(mac => ({ mac_lista: mac.trim() }));
+    }
     const separador = lineas[0].includes(';') ? ';' : ',';
     const cabeceras = lineas[0].split(separador).map(h => h.replace(/"/g, '').trim().toLowerCase());
     const resultado = [];
     for (let i = 1; i < lineas.length; i++) {
         const fila = lineas[i].split(separador);
-        if (fila.length !== cabeceras.length) continue;
         let obj = {};
         cabeceras.forEach((key, index) => {
             let valor = fila[index] ? fila[index].replace(/"/g, '').trim() : '';
@@ -293,35 +310,25 @@ function csvAJson(csvText) {
     return resultado;
 }
 
-async function cargarClaves() { 
-    try { 
-        const c = await baseDatos.leerUno('configuracion', 'claves_rapidas'); 
-        if (c) misClaves = c.datos; 
-    } catch(e) {} 
-}
-
-async function cargarDatosValidacion() {
-    try {
-        const conf = await baseDatos.leerUno('configuracion', 'fecha_importacion');
-        if (conf && els.importDate) els.importDate.textContent = conf.valor;
-        const datos = await baseDatos.leerTodo('validacion_mac');
-        listaValidacion = datos; 
-    } catch(e) {}
-}
-
-/* 7. B2B, CLAVES */
-els.b2bRadios.forEach(r => r.addEventListener('change', (e) => {
+/* ==========================================================================
+   7. B2B & CLAVES RÁPIDAS
+   ========================================================================== */
+if(els.b2bRadios) els.b2bRadios.forEach(r => r.addEventListener('change', (e) => {
     if(e.target.value === 'si') els.b2bPanel.classList.add('visible'); else els.b2bPanel.classList.remove('visible');
 }));
+
 if(els.b2bDays) els.b2bDays.addEventListener('change', (e) => {
     const val = e.target.value.toLowerCase();
     els.pSat.classList.add('hidden'); els.pSun.classList.add('hidden');
     if(val.includes('sábado')) els.pSat.classList.remove('hidden'); 
     if(val.includes('domingo')) { els.pSun.classList.remove('hidden'); els.pSat.classList.remove('hidden'); }
 });
+
 if(els.cSat) els.cSat.addEventListener('change', () => { if(els.cSat.checked) els.iSat.classList.remove('hidden'); else els.iSat.classList.add('hidden'); });
+
 if(els.cSun) els.cSun.addEventListener('change', () => { if(els.cSun.checked) els.iSun.classList.remove('hidden'); else els.iSun.classList.add('hidden'); });
-els.permisoRadios.forEach(r => r.addEventListener('change', (e) => {
+
+if(els.permisoRadios) els.permisoRadios.forEach(r => r.addEventListener('change', (e) => {
     if(e.target.value === 'si') els.permisoPanel.classList.remove('hidden'); else els.permisoPanel.classList.add('hidden');
 }));
 
@@ -330,49 +337,56 @@ if(els.btnMod) els.btnMod.addEventListener('click', () => {
     els.inRed.value = misClaves.red || ''; els.inWts.value = misClaves.wts || '';
     els.modal.classList.remove('hidden');
 });
+
 if(els.btnCancelMod) els.btnCancelMod.addEventListener('click', () => els.modal.classList.add('hidden'));
+
 if(els.btnSaveMod) els.btnSaveMod.addEventListener('click', async () => {
     misClaves = { elite: els.inElite.value, fenix: els.inFenix.value, red: els.inRed.value, wts: els.inWts.value };
     await baseDatos.guardar('configuracion', { clave: 'claves_rapidas', datos: misClaves });
-    els.modal.classList.add('hidden');
-    alert("Claves guardadas");
+    els.modal.classList.add('hidden'); alert("✅ Claves guardadas");
 });
+
 function copiarClave(key) { if(misClaves[key]) { navigator.clipboard.writeText(misClaves[key]); } else alert("Configura primero ⚙️"); }
+
 if(els.kElite) els.kElite.addEventListener('click', () => copiarClave('elite')); 
 if(els.kFenix) els.kFenix.addEventListener('click', () => copiarClave('fenix'));
 if(els.kRed) els.kRed.addEventListener('click', () => copiarClave('red')); 
 if(els.kWts) els.kWts.addEventListener('click', () => copiarClave('wts'));
 
 /* ==========================================================================
-   8. CRONÓMETRO (VALIDADO CONTRA PESTAÑAS EN SEGUNDO PLANO) Y TONO MODERNO
+   8. CRONÓMETRO, PIP Y TONO DE ALERTA SUAVE
    ========================================================================== */
+let pipWindow = null;
+const btnUndock = document.getElementById('btn_undock_timer');
+
 function actualizarReloj() {
     const now = Date.now();
     let totalSec = 0;
     let left = 0;
     
-    // TIEMPO TOTAL EN MINUTOS:SEGUNDOS
+    // TIEMPO TOTAL
     if (horaInicioLlamada) {
         totalSec = Math.floor((now - horaInicioLlamada) / 1000);
-        if(els.dispTotal) els.dispTotal.textContent = fmtTime(totalSec); 
     }
+    if(els.dispTotal) els.dispTotal.textContent = fmtTime(totalSec); 
     
     // TIEMPO AVISO (RETOMA)
     if (retomaStartTime) {
         const cycleSec = Math.floor((now - retomaStartTime) / 1000);
         left = proximaAlarmaSegundos - cycleSec;
         
-        if(els.dispCount) {
-            els.dispCount.textContent = fmtTime(left > 0 ? left : 0);
-            if(left <= 10 && left > 0) els.dispCount.classList.add('danger'); 
-            else els.dispCount.classList.remove('danger');
-        }
-
         if(left <= 0) { 
             playAlert(); 
             retomaStartTime = Date.now(); 
             proximaAlarmaSegundos = 115; 
+            left = 115; // Reflejar reinicio inmediatamente
         }
+    }
+
+    if(els.dispCount) {
+        els.dispCount.textContent = fmtTime(left > 0 ? left : 0);
+        if(left <= 10 && left > 0) els.dispCount.classList.add('danger'); 
+        else els.dispCount.classList.remove('danger');
     }
 
     // --- SINCRONIZAR CON LA VENTANA SIEMPRE VISIBLE (PiP) ---
@@ -387,36 +401,80 @@ function actualizarReloj() {
             else pCount.classList.remove('danger');
         }
     }
+
+    // --- TITULO DE LA PESTAÑA / BARRA DE TAREAS ---
+    if (horaInicioLlamada) {
+        document.title = `⏱️ ${fmtTime(totalSec)} | ⚠️ ${fmtTime(left > 0 ? left : 0)}`;
+    } else {
+        document.title = "Gestión Tickets PRO";
+    }
+}
+
+function startTimer(manual = false) {
+    if (timerRetoma && !manual) return;
+    
+    // Mostrar widget solo si NO está abierta la ventana externa PiP
+    if(els.timerWidget && !pipWindow) {
+        els.timerWidget.classList.remove('hidden');
+    }
+    
+    if(timerRetoma) clearInterval(timerRetoma);
+    if (!horaInicioLlamada) horaInicioLlamada = Date.now();
+    proximaAlarmaSegundos = manual ? 115 : 45;
+    retomaStartTime = Date.now();
+    
+    actualizarReloj(); 
+    timerRetoma = setInterval(actualizarReloj, 1000);
+}
+
+if(els.id) els.id.addEventListener('input', () => { if(els.id.value.trim().length > 0) startTimer(false); });
+if(els.btnRefres) els.btnRefres.addEventListener('click', () => startTimer(true));
+
+// --- Lógica del botón Reiniciar contador interno ---
+if(els.btnResetCount) {
+    els.btnResetCount.addEventListener('click', () => {
+        retomaStartTime = Date.now();
+        proximaAlarmaSegundos = 115;
+        actualizarReloj();
+    });
+}
+
+// --- Lógica para arrastrar el cuadro emergente interno ---
+let isDraggingTimer = false, offsetTimerX, offsetTimerY;
+if(els.timerDragHeader && els.timerWidget) {
+    els.timerDragHeader.addEventListener('mousedown', (e) => {
+        isDraggingTimer = true;
+        const rect = els.timerWidget.getBoundingClientRect();
+        els.timerWidget.style.right = 'auto';
+        els.timerWidget.style.bottom = 'auto';
+        els.timerWidget.style.left = rect.left + 'px';
+        els.timerWidget.style.top = rect.top + 'px';
+        offsetTimerX = e.clientX - rect.left;
+        offsetTimerY = e.clientY - rect.top;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDraggingTimer) return;
+        els.timerWidget.style.left = (e.clientX - offsetTimerX) + 'px';
+        els.timerWidget.style.top = (e.clientY - offsetTimerY) + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+        isDraggingTimer = false;
+    });
 }
 
 // --- LÓGICA PARA VENTANA "SIEMPRE POR ENCIMA" (Document PiP) ---
-let pipWindow = null;
-const btnUndock = document.getElementById('btn_undock_timer');
-
 if(btnUndock) {
     btnUndock.addEventListener('click', async () => {
-        // Verificamos si el navegador (Brave/Chrome/Edge) soporta la función Always on Top (PiP)
         if ('documentPictureInPicture' in window) {
-            if (pipWindow) return; // Si ya está abierta, no hace nada
+            if (pipWindow) return;
 
             try {
-                // Abre una ventana PiP (Siempre visible, sin barras de navegador)
-                pipWindow = await window.documentPictureInPicture.requestWindow({
-                    width: 180,
-                    height: 110
-                });
+                pipWindow = await window.documentPictureInPicture.requestWindow({ width: 180, height: 110 });
 
-                // Le inyectamos estilos muy limpios y blancos para que no sea un cuadro negro
                 const style = pipWindow.document.createElement('style');
                 style.textContent = `
-                    body { 
-                        background: #f8fafc; /* Color blanco/grisáceo muy limpio */
-                        color: #334155; 
-                        font-family: 'Segoe UI', sans-serif; 
-                        display: flex; flex-direction: column; 
-                        align-items: center; justify-content: center; 
-                        height: 100vh; margin: 0; user-select: none; 
-                    }
+                    body { background: #f8fafc; color: #334155; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; user-select: none; }
                     .time-row { font-size: 0.85rem; margin-bottom: 8px; color: #64748b; display:flex; width: 130px; justify-content: space-between; align-items:center; }
                     .time-row span { font-weight: bold; color: #0f172a; font-size: 1.15rem; font-family: monospace; }
                     .danger { color: #ef4444 !important; animation: blink 1s infinite; }
@@ -426,22 +484,18 @@ if(btnUndock) {
                 `;
                 pipWindow.document.head.appendChild(style);
 
-                // Inyectamos el HTML del contador
                 pipWindow.document.body.innerHTML = `
                     <div class="time-row">Total: <span id="pop_total">00:00</span></div>
                     <div class="time-row">Aviso: <span id="pop_count">00:00</span></div>
                     <button class="btn" id="pop_reset" title="Reiniciar Contador">🔄</button>
                 `;
 
-                // Logica del botón reiniciar
                 pipWindow.document.getElementById('pop_reset').addEventListener('click', () => {
                     window.reiniciarContadorDesdePopout();
                 });
 
-                // Ocultamos el widget original de la página
                 els.timerWidget.classList.add('hidden');
 
-                // Si el usuario cierra la ventanita PiP, restauramos el widget original
                 pipWindow.addEventListener('pagehide', () => {
                     pipWindow = null;
                     if(horaInicioLlamada) els.timerWidget.classList.remove('hidden');
@@ -453,107 +507,47 @@ if(btnUndock) {
                 alert("Tu navegador bloqueó la ventana superpuesta o hubo un error.");
             }
         } else {
-            alert("Tu navegador no soporta la función 'Siempre por Encima'. Usa Chrome, Edge o Brave actualizados.");
+            alert("Tu navegador no soporta la función 'Siempre por Encima'.");
         }
     });
 }
 
-// Función expuesta para resetear desde la ventanita
 window.reiniciarContadorDesdePopout = function() {
     retomaStartTime = Date.now();
     proximaAlarmaSegundos = 115;
     actualizarReloj();
 };
 
-function startTimer(manual = false) {
-    if (timerRetoma && !manual) return;
-    
-    if(els.timerWidget) els.timerWidget.classList.remove('hidden');
-    if(timerRetoma) clearInterval(timerRetoma);
-    
-    if (!horaInicioLlamada) horaInicioLlamada = Date.now();
-    
-    proximaAlarmaSegundos = manual ? 115 : 45;
-    retomaStartTime = Date.now();
-    
-    actualizarReloj(); 
-    timerRetoma = setInterval(actualizarReloj, 1000);
-}
-
-if(els.id) els.id.addEventListener('input', () => { 
-    if(els.id.value.trim().length > 0) startTimer(false); 
-});
-if(els.btnRefres) els.btnRefres.addEventListener('click', () => startTimer(true));
-
-// --- Lógica del botón Reiniciar solo el contador ---
-if(els.btnResetCount) {
-    els.btnResetCount.addEventListener('click', () => {
-        retomaStartTime = Date.now();
-        proximaAlarmaSegundos = 115; // Reinicia el aviso pero deja el total intacto
-        actualizarReloj();
-    });
-}
-
-// --- Lógica para arrastrar el cuadro emergente ---
-let isDraggingTimer = false, offsetTimerX, offsetTimerY;
-if(els.timerDragHeader && els.timerWidget) {
-    els.timerDragHeader.addEventListener('mousedown', (e) => {
-        isDraggingTimer = true;
-        const rect = els.timerWidget.getBoundingClientRect();
-        
-        // Evitar conflictos con top/right/bottom/left de css fijando coords absolutas
-        els.timerWidget.style.right = 'auto';
-        els.timerWidget.style.bottom = 'auto';
-        els.timerWidget.style.left = rect.left + 'px';
-        els.timerWidget.style.top = rect.top + 'px';
-        
-        offsetTimerX = e.clientX - rect.left;
-        offsetTimerY = e.clientY - rect.top;
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (!isDraggingTimer) return;
-        els.timerWidget.style.left = (e.clientX - offsetTimerX) + 'px';
-        els.timerWidget.style.top = (e.clientY - offsetTimerY) + 'px';
-    });
-
-    document.addEventListener('mouseup', () => {
-        isDraggingTimer = false;
-    });
-}
-
-// --- TONO DE NOTIFICACIÓN MODERNO ---
+// --- TONO ÚNICO, MODERNO Y PROLONGADO ---
 let audioCtx;
 function playAlert() {
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if(audioCtx.state === 'suspended') audioCtx.resume();
-    
+
     const t = audioCtx.currentTime;
-    
-    // Tono 1: Ping inicial rápido
-    const osc1 = audioCtx.createOscillator();
-    const gain1 = audioCtx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(800, t); // Frecuencia alta y limpia
-    gain1.gain.setValueAtTime(0, t);
-    gain1.gain.linearRampToValueAtTime(0.15, t + 0.02); // Sube volumen rápido
-    gain1.gain.linearRampToValueAtTime(0, t + 0.15); // Baja volumen rápido
-    osc1.connect(gain1); gain1.connect(audioCtx.destination);
-    osc1.start(t); osc1.stop(t + 0.15);
-    
-    // Tono 2: Ping secundario más agudo (crea el efecto de "Doble Beep" moderno)
-    const osc2 = audioCtx.createOscillator();
-    const gain2 = audioCtx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(1200, t + 0.15); // Más agudo
-    gain2.gain.setValueAtTime(0, t + 0.15);
-    gain2.gain.linearRampToValueAtTime(0.15, t + 0.17);
-    gain2.gain.linearRampToValueAtTime(0, t + 0.35);
-    osc2.connect(gain2); gain2.connect(audioCtx.destination);
-    osc2.start(t + 0.15); osc2.stop(t + 0.35);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'sine'; 
+    osc.frequency.setValueAtTime(750, t);
+
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.25, t + 0.1); 
+    gain.gain.setValueAtTime(0.25, t + 0.6);          
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 2.0); 
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(t);
+    osc.stop(t + 2.0);
 }
 
-/* 9. COPIAR DATOS */
+
+
+/* ==========================================================================
+   9. COPIAR DATOS (LÓGICA BLINDADA B2B)
+   ========================================================================== */
 document.getElementById('btn_copy').addEventListener('click', () => {
     if(!els.id.value || !els.obs.value) return alert("Falta ID o Obs");
     let txt = `Observaciones: ${els.obs.value};\nID de la llamada: ${els.id.value};\n`;
@@ -562,7 +556,10 @@ document.getElementById('btn_copy').addEventListener('click', () => {
     add("ID prueba integrada SMNET", els.smnetInt.value); add("ID prueba unitaria SMNET", els.smnetUnit.value);
     add("Tecnología", els.tech.value); add("Servicio", els.prod.value); add("Dolor puntual", els.fail.value);
     
-    if(els.macInp && els.macInp.value.trim()) txt += `MAC: ${els.macInp.value.trim().toUpperCase()};\n`;
+    if(els.macInp && els.macInp.value.trim()) {
+        const labelEquipo = (els.tech.value === 'GPON') ? 'SN' : 'MAC';
+        txt += `${labelEquipo}: ${els.macInp.value.trim().toUpperCase()};\n`;
+    }
 
     if(tipoServicioActual === 'TV') {
         const qty = els.tvQty.value; if(qty && qty > 0) txt += `Cantidad de equipos fallando: ${qty};\n`;
@@ -573,38 +570,51 @@ document.getElementById('btn_copy').addEventListener('click', () => {
     
     if(els.portal && els.portal.checked) txt += "Se verifica portal Cautivo OK;\n";
 
-    const isB2B = document.querySelector('input[name="b2b_option"]:checked').value === 'si';
+    // --- REPARACIÓN Y BLINDAJE DE B2B ---
+    const radioB2B = document.querySelector('input[name="b2b_option"]:checked');
+    const isB2B = radioB2B && radioB2B.value === 'si';
+
     if(isB2B) {
         txt += `Horario B2B - Nombre de quien atiende: ${els.b2bContact.value};\n`;
         txt += `Celular de quien atiende: ${els.b2bPhone.value};\n`;
-        let dias = els.b2bDays.value;
-        if(els.cSat.checked) {
-            const start = els.iSat.querySelector('input[placeholder*="Inicio"]').value;
-            const end = els.iSat.querySelector('input[placeholder*="Fin"]').value;
+        let dias = els.b2bDays.value || '';
+        
+        if(els.cSat && els.cSat.checked && els.iSat) {
+            const inputsSat = els.iSat.querySelectorAll('input');
+            const start = inputsSat[0] ? inputsSat[0].value : '';
+            const end = inputsSat[1] ? inputsSat[1].value : '';
             dias += ` (Sábados: ${start} - ${end})`;
         }
-        if(els.cSun.checked) {
-            const start = els.iSun.querySelector('input[placeholder*="Inicio"]').value;
-            const end = els.iSun.querySelector('input[placeholder*="Fin"]').value;
+        if(els.cSun && els.cSun.checked && els.iSun) {
+            const inputsSun = els.iSun.querySelectorAll('input');
+            const start = inputsSun[0] ? inputsSun[0].value : '';
+            const end = inputsSun[1] ? inputsSun[1].value : '';
             dias += ` (Domingos: ${start} - ${end})`;
         }
+        
         txt += `Días en los que se atiende: ${dias};\n`;
         txt += `Horario de atención - Hora Inicial: ${els.b2bStart.value};\n`;
         txt += `Hora final: ${els.b2bEnd.value};\n`;
-        const perm = document.querySelector('input[name="permiso_opt"]:checked').value === 'si' ? els.permisoTxt.value : 'No';
+        
+        const radioPermiso = document.querySelector('input[name="permiso_opt"]:checked');
+        const perm = (radioPermiso && radioPermiso.value === 'si') ? els.permisoTxt.value : 'No';
         txt += `Se requiere permiso especial o algún documento: ${perm};\n`;
-        if (els.doc.value.trim()) txt += `NIT/Documento: ${els.doc.value.trim()};\n`;
+        
+        if (els.doc.value && els.doc.value.trim()) txt += `NIT/Documento: ${els.doc.value.trim()};\n`;
     } else { 
         txt += "No aplica horario B2B\n"; 
-        if (els.doc.value.trim()) txt += `Documento: ${els.doc.value.trim()};\n`;
-        if (els.cel.value.trim()) txt += `Teléfono: ${els.cel.value.trim()};\n`;
+        if (els.doc.value && els.doc.value.trim()) txt += `Documento: ${els.doc.value.trim()};\n`;
+        if (els.cel.value && els.cel.value.trim()) txt += `Teléfono: ${els.cel.value.trim()};\n`;
     }
+
     navigator.clipboard.writeText(txt).then(() => { 
         const b = document.getElementById('btn_copy'); const prev = b.textContent; b.textContent = "¡Copiado!"; setTimeout(() => b.textContent = prev, 1000); 
     });
 });
 
-/* 10. GUARDAR Y RESETEAR */
+/* ==========================================================================
+   10. GUARDAR Y RESETEAR
+   ========================================================================== */
 document.getElementById('btn_reset').addEventListener('click', async () => {
     if(!els.id.value || !els.obs.value) return alert("Falta ID o Obs");
     if(timerRetoma) clearInterval(timerRetoma);
@@ -622,7 +632,10 @@ document.getElementById('btn_reset').addEventListener('click', async () => {
     };
     try { await baseDatos.guardar('historial', reg); await actualizarMetricas(); } catch(e) { alert("Error: "+e); }
     
-    horaInicioLlamada = null; timerRetoma = null;
+    horaInicioLlamada = null; 
+    timerRetoma = null;
+    retomaStartTime = null; 
+    
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"])').forEach(i => i.value = '');
     els.obs.value = ''; els.obs.style.height = 'auto'; els.tvCont.innerHTML = '';
     
@@ -633,12 +646,192 @@ document.getElementById('btn_reset').addEventListener('click', async () => {
     if(els.checkNotif){els.checkNotif.checked = false; els.toggleNotif.classList.remove('active');} 
     if(els.checkVenta){els.checkVenta.checked = false; els.toggleVenta.classList.remove('active');}
     if(els.soporteVel) els.soporteVel.value = 'Si'; 
-    document.querySelector('input[name="b2b_option"][value="no"]').click();
-    if (els.timerWidget) els.timerWidget.classList.add('hidden');
-    els.id.focus();
+    const noRadio = document.querySelector('input[name="b2b_option"][value="no"]');
+    if(noRadio) noRadio.click();
+    
+    // --- Lógica del Cronómetro al Guardar ---
+    actualizarReloj(); // Esto fuerza que los tiempos se pongan en 00:00
+
+    if (pipWindow) {
+        // Si la ventana PiP externa está abierta, NO la cerramos. Se queda en 00:00.
+    } else {
+        // Si no está abierta la PiP, ocultamos el widget de la página principal.
+        if (els.timerWidget) els.timerWidget.classList.add('hidden');
+    }
+    
+    const inputGenesys = document.getElementById('genesys_raw_data');
+    if(inputGenesys) {
+        inputGenesys.focus();
+    } else {
+        els.id.focus();
+    }
 });
 
-/* 11. AHT & INIT */
+/* ==========================================================================
+   11. MÓDULO EXTRACCIÓN GENESYS / SMNET
+   ========================================================================== */
+const inputGenesys = document.getElementById('genesys_raw_data');
+const btnExtraer = document.getElementById('btn_extraer_genesys');
+
+if(btnExtraer && inputGenesys) {
+
+    inputGenesys.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); 
+            btnExtraer.click(); 
+        }
+    });
+
+    btnExtraer.addEventListener('click', (e) => {
+        e.preventDefault(); 
+        const txt = inputGenesys.value;
+        if (!txt || txt.trim() === '') return alert("⚠️ Pega el texto primero.");
+
+        // 🛡️ MEMORIA: GUARDAMOS LA MAC ACTUAL ANTES DE ANALIZAR NADA
+        const macActual = els.macInp.value;
+
+        const matchId = txt.match(/INTERACTION ID:?[\s\r\n]+([\w\-]+)|ID de la llamada actual[\s\r\n]+([\w\-]+)/i);
+        const idEncontrado = (matchId && matchId[1]) ? matchId[1] : (matchId && matchId[2] ? matchId[2] : null);
+        if (idEncontrado) { els.id.value = idEncontrado.trim(); startTimer(false); }
+
+        const matchDoc = txt.match(/(?:Doc\/NIT|Identificación del cliente)[:\s\r\n]+(\d+)/i);
+        if (matchDoc && matchDoc[1]) els.doc.value = matchDoc[1].trim();
+
+        const matchNombre = txt.match(/(?:Nombre|Nombre del cliente)[:\s\r\n]+([^\r\n]+)/i);
+        if (matchNombre && matchNombre[1]) {
+            const posibleNombre = matchNombre[1].trim();
+            if (!/(Doc\/NIT|Identificación|Dirección|Código|Ciudad|ANI|del cliente)/i.test(posibleNombre)) {
+                els.cliente.value = posibleNombre;
+            }
+        }
+
+        // --- PRUEBAS SMNET (Con corrección de minúscula) ---
+        const matchSmnetGenesys = txt.match(/Id SMNet:[\s\r\n]+(\d+)/i);
+        if (matchSmnetGenesys && matchSmnetGenesys[1]) els.smnetInt.value = matchSmnetGenesys[1].trim();
+        const matchSmnetInt = txt.match(/Prueba Integrada[\s\r\n]+(\d+)/i);
+        if (matchSmnetInt && matchSmnetInt[1]) els.smnetInt.value = matchSmnetInt[1].trim(); 
+        
+        const matchSmnetUnit = txt.match(/Prueba Unitaria:?[\s\r\n]+(\d+)/i) || txt.match(/Prueba integrada:?[\s\r\n]+(\d+)/);
+        if (matchSmnetUnit && matchSmnetUnit[1]) els.smnetUnit.value = matchSmnetUnit[1].trim();
+
+        const matchCel = txt.match(/Celular[\s\r\n]+(\d{7,10})/i);
+        const matchAni = txt.match(/ANI[\s\r\n]+(\d{7,10})/i);
+        if (matchCel && matchCel[1]) els.cel.value = matchCel[1].trim();
+        else if (matchAni && matchAni[1]) els.cel.value = matchAni[1].trim(); 
+
+        // --- INTELIGENCIA DE PANELES (Evita que se reinicie y borre datos) ---
+        const matchTech = txt.match(/\b(HFC|GPON|ADSL|REDCO)\b/i);
+        let tecDetectada = els.tech.value; // Por defecto mantiene la tecnología que ya tenías seleccionada
+        
+        if (matchTech && matchTech[1]) {
+            const nuevaTec = matchTech[1].toUpperCase();
+            // Solo disparamos el evento "change" si la tecnología es diferente a la que ya estaba
+            if (els.tech.value !== nuevaTec) {
+                els.tech.value = nuevaTec;
+                els.tech.dispatchEvent(new Event('change')); 
+            }
+            tecDetectada = nuevaTec;
+        }
+
+        let macExtraida = null;
+        if (tecDetectada === 'GPON') {
+            const matchSn = txt.match(/(?<!\-)\b([A-F0-9]{16})\b(?!\-)/i);
+            if (matchSn && matchSn[1]) macExtraida = matchSn[1].toUpperCase();
+        } else {
+            const matchMac = txt.match(/(?<!\-)\b([A-F0-9]{12}|(?:[A-F0-9]{2}:){5}[A-F0-9]{2})\b(?!\-)/i);
+            if (matchMac && matchMac[1]) macExtraida = matchMac[1].replace(/:/g, '').toUpperCase();
+        }
+
+        // --- COPIADO DEL ID DE INTERNET AL PORTAPAPELES ---
+        const matchInternetId = txt.match(/Internet[\s\r\n]+([A-Za-z0-9\-]+)/i);
+        if (matchInternetId && matchInternetId[1]) {
+            const idInternet = matchInternetId[1].trim();
+            navigator.clipboard.writeText(idInternet).then(() => {
+                console.log("✅ ID de Internet copiado: " + idInternet);
+            }).catch(err => console.error('Error copiando al portapapeles: ', err));
+        }
+
+        const decoders = [];
+        if (tecDetectada !== 'GPON') {
+            const regexDeco = /(?:Decoder|Deco|STB|DECO\s+DTA|UIW4059MIL)[^\n\r]+/ig; 
+            let matchDeco;
+            while ((matchDeco = regexDeco.exec(txt)) !== null) {
+                const line = matchDeco[0];
+                const serials = line.match(/\b[A-Z0-9]{8,18}\b/g);
+                if (serials) {
+                    const validSerials = serials.filter(s => /[0-9]/.test(s));
+                    if(validSerials.length > 0) decoders.push(validSerials[0]); 
+                }
+            }
+        }
+
+        if (decoders.length > 0) {
+            // Solo cambia el producto si no estaba ya en TV (evita el parpadeo/reseteo)
+            if (els.prod.value !== 'TV_Digital') {
+                els.prod.value = 'TV_Digital'; 
+                els.prod.dispatchEvent(new Event('change')); 
+            }
+        } else if (macExtraida || tecDetectada === 'GPON') {
+            // Solo cambia el producto si no estaba ya en Internet
+            if (els.prod.value !== 'Internet') {
+                els.prod.value = 'Internet';
+                els.prod.dispatchEvent(new Event('change'));
+            }
+        }
+
+        // TIEMPO EXACTO: 500ms
+        setTimeout(() => {
+            if (tecDetectada) els.tech.value = tecDetectada;
+
+            if (decoders.length > 0) {
+                els.tvQty.value = decoders.length;
+                els.tvQty.dispatchEvent(new Event('input'));
+                setTimeout(() => {
+                    const tvInputs = document.querySelectorAll('.tv-serial');
+                    decoders.forEach((decoSerial, index) => {
+                        if (tvInputs[index]) tvInputs[index].value = decoSerial;
+                    });
+                }, 50);
+            }
+
+            // 🛡️ MAGIA DE RESTAURACIÓN DE LA MAC 
+            if (els.prod.value === 'Internet') {
+                if(els.macWrap) els.macWrap.classList.remove('hidden');
+                
+                if (macExtraida) {
+                    // Si el texto nuevo traía una MAC, pone la nueva
+                    els.macInp.value = macExtraida;
+                    els.macInp.dispatchEvent(new Event('input')); 
+                } else if (macActual) {
+                    // Si el texto nuevo NO traía MAC, pero ya tenías una antes... ¡la restaura!
+                    els.macInp.value = macActual;
+                    els.macInp.dispatchEvent(new Event('input')); 
+                }
+            }
+        }, 500);
+
+        const matchMensaje = txt.match(/Mensaje Cliente:[\s\r\n]+([^\r\n]+)/i);
+        if (matchMensaje && matchMensaje[1]) {
+            const msg = matchMensaje[1].trim();
+            if (!/Meta AHT|Tratamiento/i.test(msg)) {
+                els.obs.value = msg;
+                els.obs.style.height = 'auto';
+                els.obs.style.height = els.obs.scrollHeight + 'px';
+            }
+        }
+
+        inputGenesys.value = '';
+        inputGenesys.placeholder = "¡✅ Datos procesados con éxito!";
+        
+        inputGenesys.focus();
+        
+        setTimeout(() => inputGenesys.placeholder = "⚡ Pega aquí el texto...", 3000);
+    });
+}
+
+/* ==========================================================================
+   12. AHT E INICIO
+   ========================================================================== */
 async function actualizarMetricas() {
     try {
         if (!baseDatos.db) return;
@@ -657,131 +850,25 @@ async function actualizarMetricas() {
         if(els.ahtMonth) els.ahtMonth.textContent = fmt(monthlyCount > 0 ? monthlySum / monthlyCount : 0);
     } catch (e) {}
 }
+
 function fmtTime(s) { return Math.floor(s/60).toString().padStart(2,'0')+":"+Math.floor(s%60).toString().padStart(2,'0'); }
 
-/* ==========================================================================
-   12. MÓDULO EXTRACCIÓN AUTOMÁTICA GENESYS / SMNET (SIN RACE CONDITION)
-   ========================================================================== */
-const inputGenesys = document.getElementById('genesys_raw_data');
-const btnExtraer = document.getElementById('btn_extraer_genesys');
-
-if(btnExtraer && inputGenesys) {
-    btnExtraer.addEventListener('click', (e) => {
-        e.preventDefault(); 
-        const txt = inputGenesys.value;
-        if (!txt || txt.trim() === '') return alert("⚠️ Pega el texto primero.");
-
-        // 1. Extraer ID
-        const matchId = txt.match(/INTERACTION ID:?[\s\r\n]+([\w\-]+)|ID de la llamada actual[\s\r\n]+([\w\-]+)/i);
-        const idEncontrado = (matchId && matchId[1]) ? matchId[1] : (matchId && matchId[2] ? matchId[2] : null);
-        if (idEncontrado) { els.id.value = idEncontrado.trim(); startTimer(false); }
-
-        // 2. Extraer Documento o NIT
-        const matchDoc = txt.match(/(?:Doc\/NIT|Identificación del cliente)[:\s\r\n]+(\d+)/i);
-        if (matchDoc && matchDoc[1]) els.doc.value = matchDoc[1].trim();
-
-        // 3. Extraer Nombre (Regla Estricta Única)
-        const matchNombre = txt.match(/(?:Nombre|Nombre del cliente)[:\s\r\n]+([^\r\n]+)/i);
-        if (matchNombre && matchNombre[1]) {
-            const posibleNombre = matchNombre[1].trim();
-            if (!/(Doc\/NIT|Identificación|Dirección|Código|Ciudad|ANI|del cliente)/i.test(posibleNombre)) {
-                els.cliente.value = posibleNombre;
-            }
-        }
-
-        // 4. Extraer Pruebas SMNET
-        const matchSmnetGenesys = txt.match(/Id SMNet:[\s\r\n]+(\d+)/i);
-        if (matchSmnetGenesys && matchSmnetGenesys[1]) els.smnetInt.value = matchSmnetGenesys[1].trim();
-        const matchSmnetInt = txt.match(/Prueba Integrada[\s\r\n]+(\d+)/i);
-        if (matchSmnetInt && matchSmnetInt[1]) els.smnetInt.value = matchSmnetInt[1].trim(); 
-        const matchSmnetUnit = txt.match(/Prueba Unitaria[\s\r\n]+(\d+)/i);
-        if (matchSmnetUnit && matchSmnetUnit[1]) els.smnetUnit.value = matchSmnetUnit[1].trim();
-
-        // 5. Extraer Celular / ANI
-        const matchCel = txt.match(/Celular[\s\r\n]+(\d{7,10})/i);
-        const matchAni = txt.match(/ANI[\s\r\n]+(\d{7,10})/i);
-        if (matchCel && matchCel[1]) els.cel.value = matchCel[1].trim();
-        else if (matchAni && matchAni[1]) els.cel.value = matchAni[1].trim(); 
-
-        // 6. Extraer Tecnología
-        const matchTech = txt.match(/\b(HFC|GPON|ADSL|REDCO)\b/i);
-        let tecDetectada = ''; 
-        if (matchTech && matchTech[1]) {
-            tecDetectada = matchTech[1].toUpperCase();
-            els.tech.value = tecDetectada;
-            els.tech.dispatchEvent(new Event('change')); 
-        }
-
-        // 7. Buscar Módem MAC / SN (Internet)
-        const matchMac = txt.match(/(?<!\-)\b([A-F0-9]{12}|(?:[A-F0-9]{2}:){5}[A-F0-9]{2})\b(?!\-)/i);
-        let macExtraida = null;
-        if (matchMac && matchMac[1]) {
-            macExtraida = matchMac[1].replace(/:/g, '').toUpperCase();
-        }
-
-        // 8. Buscar Decodificadores (IGNORANDO GPON TOTALMENTE)
-        const decoders = [];
-        if (tecDetectada !== 'GPON') {
-            const regexDeco = /(?:Decoder|Deco|STB|DECO\s+DTA|UIW4059MIL)[^\n\r]+/ig; 
-            let matchDeco;
-            while ((matchDeco = regexDeco.exec(txt)) !== null) {
-                const line = matchDeco[0];
-                const serials = line.match(/\b[A-Z0-9]{8,18}\b/g);
-                if (serials) {
-                    const validSerials = serials.filter(s => /[0-9]/.test(s));
-                    if(validSerials.length > 0) decoders.push(validSerials[0]); 
-                }
-            }
-        }
-
-        // 9. Lógica de Producto Dinámica
-        if (decoders.length > 0) {
-            els.prod.value = 'TV_Digital'; 
-            els.prod.dispatchEvent(new Event('change')); 
-        } else if (macExtraida || tecDetectada === 'GPON') {
-            els.prod.value = 'Internet';
-            els.prod.dispatchEvent(new Event('change'));
-        }
-
-        // 10. LA MAGIA ASÍNCRONA: Pegar datos después de renderizar el DOM
-        setTimeout(() => {
-            if (decoders.length > 0) {
-                els.tvQty.value = decoders.length;
-                els.tvQty.dispatchEvent(new Event('input'));
-                setTimeout(() => {
-                    const tvInputs = document.querySelectorAll('.tv-serial');
-                    decoders.forEach((decoSerial, index) => {
-                        if (tvInputs[index]) tvInputs[index].value = decoSerial;
-                    });
-                }, 50);
-            }
-
-            if (macExtraida) {
-                if(els.macWrap) els.macWrap.classList.remove('hidden');
-                els.macInp.value = macExtraida;
-                els.macInp.dispatchEvent(new Event('input')); 
-            }
-        }, 100);
-
-        // 11. Extraer Mensaje -> Observaciones
-        const matchMensaje = txt.match(/Mensaje Cliente:[\s\r\n]+([^\r\n]+)/i);
-        if (matchMensaje && matchMensaje[1]) {
-            const msg = matchMensaje[1].trim();
-            if (!/Meta AHT|Tratamiento/i.test(msg)) {
-                els.obs.value = msg;
-                els.obs.style.height = 'auto';
-                els.obs.style.height = els.obs.scrollHeight + 'px';
-            }
-        }
-
-        // Feedback visual final
-        inputGenesys.value = '';
-        inputGenesys.placeholder = "¡✅ Datos procesados con éxito!";
-        setTimeout(() => inputGenesys.placeholder = "⚡ Pega aquí el texto...", 3000);
-    });
+async function cargarClaves() { 
+    try { 
+        const c = await baseDatos.leerUno('configuracion', 'claves_rapidas'); 
+        if (c) misClaves = c.datos; 
+    } catch(e) {} 
 }
 
-// INICIALIZACIÓN
+async function cargarDatosValidacion() {
+    try {
+        const conf = await baseDatos.leerUno('configuracion', 'fecha_importacion');
+        if (conf && els.importDate) els.importDate.textContent = conf.valor;
+        const datos = await baseDatos.leerTodo('validacion_mac');
+        listaValidacion = datos; 
+    } catch(e) {}
+}
+
 async function init() { 
     fillList(els.lTech, Object.keys(opcionesTiposervicio)); 
     await baseDatos.iniciar(); 
@@ -789,4 +876,5 @@ async function init() {
     await cargarDatosValidacion(); 
     await actualizarMetricas(); 
 }
+
 init();

@@ -129,8 +129,14 @@ button#btn_reset { background: white; border: 1px solid #cbd5e1; padding: 14px; 
 .btn-key:hover { background: white; border-color: var(--primary); color: var(--primary); }
 .btn-key.mod { color: #f59e0b; border-color: #fcd34d; }
 
-/* --- AHT & TIMER --- */
-/* --- CUADRO EMERGENTE FLOTANTE (CRONÓMETRO) OPTIMIZADO --- */
+.btn-key.active { 
+    background: #ecfdf5 !important; 
+    border-color: #10b981 !important; 
+    color: #047857 !important; 
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+/* --- AHT & TIMER WIDGET OPTIMIZADO --- */
 .timer-widget {
     position: fixed;
     top: 20px;
@@ -182,7 +188,7 @@ button#btn_reset { background: white; border: 1px solid #cbd5e1; padding: 14px; 
 .countdown.danger { color: #f87171; animation: blink 1s infinite; }
 
 .btn-reset-timer {
-    background: #3b82f6; /* Color azul */
+    background: #3b82f6;
     color: white;
     border: none;
     border-radius: 50%;
@@ -198,9 +204,9 @@ button#btn_reset { background: white; border: 1px solid #cbd5e1; padding: 14px; 
 }
 .btn-reset-timer:hover { 
     background: #2563eb; 
-    transform: rotate(180deg); /* Pequeña animación de giro al pasar el mouse */
+    transform: rotate(180deg);
 }
-.btn-reset-timer:hover { background: #2563eb; }
+
 .stats-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
 .stat-card { background: white; border-radius: 8px; padding: 10px; text-align: center; border: 1px solid #e2e8f0; }
 .stat-value { font-size: 1.1rem; font-weight: 800; color: var(--primary-dark); }
