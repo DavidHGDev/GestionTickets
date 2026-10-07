@@ -299,6 +299,21 @@
     </div>
 </div>
 
+<!-- CONTENEDOR DE NOTIFICACIONES TOAST -->
+    <div id="toast_container"></div>
+
+    <!-- MODAL DE CONFIRMACIÓN ELEGANTE -->
+    <div id="custom_confirm" class="modal-overlay hidden">
+        <div class="modal-content" style="text-align: center; width: 340px;">
+            <div style="font-size: 3rem; margin-bottom: 10px;">⚠️</div>
+            <h3 style="color: #1e293b; margin-bottom: 15px; font-size: 1.1rem;" id="confirm_msg">¿Estás seguro?</h3>
+            <div class="modal-actions" style="justify-content: center; gap: 15px;">
+                <button id="btn_confirm_no" class="btn-key" style="padding: 10px 25px;">Cancelar</button>
+                <button id="btn_confirm_si" class="btn-key" style="background:#fee2e2; border-color:#fca5a5; color:#b91c1c; padding: 10px 25px;">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
 <script src="js/db.js"></script> 
 <script src="js/app.js"></script>
 </body>

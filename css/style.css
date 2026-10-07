@@ -257,3 +257,46 @@ button#btn_reset { background: white; border: 1px solid #cbd5e1; padding: 14px; 
     font-style: italic;
 }
 .footer-info span { font-weight: 600; color: #64748b; }
+
+/* --- NOTIFICACIONES TOAST (MODERNAS) --- */
+#toast_container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.custom-toast {
+    background: white;
+    border-left: 6px solid var(--primary);
+    color: #334155;
+    padding: 16px 20px;
+    border-radius: 10px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    min-width: 280px;
+    transform: translateX(120%);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: auto;
+}
+
+.custom-toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.custom-toast.toast-success { border-left-color: #10b981; }
+.custom-toast.toast-error { border-left-color: #ef4444; }
+.custom-toast.toast-warning { border-left-color: #f59e0b; }
+.custom-toast.toast-info { border-left-color: #3b82f6; }
+
+.toast-icon { font-size: 1.4rem; }

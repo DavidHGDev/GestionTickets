@@ -107,6 +107,58 @@ const els = {
     kWts: document.getElementById('btn_key_wts')
 };
 
+/* --- SISTEMA DE NOTIFICACIONES Y MODALES --- */
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast_container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `custom-toast toast-${type}`;
+    
+    let icon = '✨'; // default success
+    if (type === 'error') icon = '❌';
+    if (type === 'warning') icon = '⚠️';
+    if (type === 'info') icon = 'ℹ️';
+
+    toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
+    container.appendChild(toast);
+
+    // Animación de entrada
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    // Desaparecer y destruir después de 3.5 segundos
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, 3500);
+}
+
+function showConfirm(message, callback) {
+    const modal = document.getElementById('custom_confirm');
+    const msgEl = document.getElementById('confirm_msg');
+    const btnSi = document.getElementById('btn_confirm_si');
+    const btnNo = document.getElementById('btn_confirm_no');
+
+    msgEl.textContent = message;
+    modal.classList.remove('hidden');
+
+    // Clonar botones para limpiar eventos anteriores
+    const newBtnSi = btnSi.cloneNode(true);
+    const newBtnNo = btnNo.cloneNode(true);
+    btnSi.parentNode.replaceChild(newBtnSi, btnSi);
+    btnNo.parentNode.replaceChild(newBtnNo, btnNo);
+
+    newBtnSi.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        callback(true);
+    });
+
+    newBtnNo.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        callback(false);
+    });
+}
+
 /* 4. UX & HELPERS */
 document.querySelectorAll('.clear-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -251,23 +303,25 @@ if(els.btnImport && els.fileInput) {
             try {
                 const datos = csvAJson(contenido);
                 if(datos && datos.length > 0) {
-                    const confirmar = confirm(`Se encontraron ${datos.length} registros.\n¿Cargarlos como Validación MAC?`);
-                    if(confirmar) {
-                        await baseDatos.limpiar('validacion_mac');
-                        for (const reg of datos) {
-                            if(!reg.id_unico) reg.id_unico = Date.now() + Math.random();
-                            await baseDatos.guardar('validacion_mac', reg);
+                    showConfirm(`Se encontraron ${datos.length} registros. ¿Cargarlos como Validación MAC?`, async (confirmado) => {
+                        if(confirmado) {
+                            await baseDatos.limpiar('validacion_mac');
+                            for (const reg of datos) {
+                                if(!reg.id_unico) reg.id_unico = Date.now() + Math.random();
+                                await baseDatos.guardar('validacion_mac', reg);
+                            }
+                            const fechaImport = new Date().toLocaleString();
+                            await baseDatos.guardar('configuracion', { clave: 'fecha_importacion', valor: fechaImport });
+                            
+                            showToast("Validación MAC actualizada exitosamente.", "success");
+                            await cargarDatosValidacion(); 
                         }
-                        const fechaImport = new Date().toLocaleString();
-                        await baseDatos.guardar('configuracion', { clave: 'fecha_importacion', valor: fechaImport });
-                        alert("✅ Validación MAC actualizada.");
-                        await cargarDatosValidacion(); 
-                    }
+                    });
                 } else { 
-                    alert("El archivo está vacío o tiene un formato incorrecto."); 
+                    showToast("El archivo está vacío o tiene un formato incorrecto.", "warning"); 
                 }
             } catch (error) { 
-                alert("Error leyendo archivo: " + error); 
+                showToast("Error leyendo archivo", "error"); 
             }
             event.target.value = ''; 
         };
@@ -276,14 +330,17 @@ if(els.btnImport && els.fileInput) {
 }
 
 if(els.btnClear) {
-    els.btnClear.addEventListener('click', async () => {
-        if(confirm("⚠ ATENCIÓN: ¿Borrar TODO el historial local? (Validación MAC NO se borrará)")) {
-            await baseDatos.limpiar('historial');
-            alert("🗑️ Historial eliminado.");
-            await actualizarMetricas();
-        }
+    els.btnClear.addEventListener('click', () => {
+        showConfirm("⚠ ¿Borrar TODO el historial local? (La validación MAC NO se borrará)", async (confirmado) => {
+            if(confirmado) {
+                await baseDatos.limpiar('historial');
+                showToast("Historial eliminado de la base de datos.", "info");
+                await actualizarMetricas();
+            }
+        });
     });
 }
+
 
 function csvAJson(csvText) {
     const cleanText = csvText.replace(/\r/g, '');
@@ -343,10 +400,10 @@ if(els.btnCancelMod) els.btnCancelMod.addEventListener('click', () => els.modal.
 if(els.btnSaveMod) els.btnSaveMod.addEventListener('click', async () => {
     misClaves = { elite: els.inElite.value, fenix: els.inFenix.value, red: els.inRed.value, wts: els.inWts.value };
     await baseDatos.guardar('configuracion', { clave: 'claves_rapidas', datos: misClaves });
-    els.modal.classList.add('hidden'); alert("✅ Claves guardadas");
+    els.modal.classList.add('hidden'); showToast("Claves guardadas exitosamente", "success");
 });
 
-function copiarClave(key) { if(misClaves[key]) { navigator.clipboard.writeText(misClaves[key]); } else alert("Configura primero ⚙️"); }
+function copiarClave(key) { if(misClaves[key]) { navigator.clipboard.writeText(misClaves[key]); showToast("Clave copiada", "info"); } else showToast("Configura primero ⚙️", "warning"); }
 
 if(els.kElite) els.kElite.addEventListener('click', () => copiarClave('elite')); 
 if(els.kFenix) els.kFenix.addEventListener('click', () => copiarClave('fenix'));
@@ -403,11 +460,11 @@ function actualizarReloj() {
     }
 
     // --- TITULO DE LA PESTAÑA / BARRA DE TAREAS ---
-    if (horaInicioLlamada) {
-        document.title = `⏱️ ${fmtTime(totalSec)} | ⚠️ ${fmtTime(left > 0 ? left : 0)}`;
-    } else {
-        document.title = "Gestión Tickets PRO";
-    }
+    // if (horaInicioLlamada) {
+    //     document.title = `⏱️ ${fmtTime(totalSec)} | ⚠️ ${fmtTime(left > 0 ? left : 0)}`;
+    // } else {
+    //     document.title = "Gestión Tickets PRO";
+    // }
 }
 
 function startTimer(manual = false) {
@@ -549,7 +606,10 @@ function playAlert() {
    9. COPIAR DATOS (LÓGICA BLINDADA B2B)
    ========================================================================== */
 document.getElementById('btn_copy').addEventListener('click', () => {
-    if(!els.id.value || !els.obs.value) return alert("Falta ID o Obs");
+    if(!els.id.value || !els.obs.value) { 
+        showToast("Falta ID de llamada u Observaciones", "warning"); 
+        return; 
+    }
     let txt = `Observaciones: ${els.obs.value};\nID de la llamada: ${els.id.value};\n`;
     const add = (lbl, v) => { if(v && v.trim()) txt += `${lbl}: ${v.trim()};\n`; };
     
@@ -616,10 +676,18 @@ document.getElementById('btn_copy').addEventListener('click', () => {
    10. GUARDAR Y RESETEAR
    ========================================================================== */
 document.getElementById('btn_reset').addEventListener('click', async () => {
-    if(!els.id.value || !els.obs.value) return alert("Falta ID o Obs");
+    if(!els.id.value || !els.obs.value) {
+        showToast("Falta ID de llamada u Observaciones", "warning");
+        return;
+    }
+    
     if(timerRetoma) clearInterval(timerRetoma);
     
-    let tvInfo = ""; if(tipoServicioActual === 'TV') { const arr=[]; document.querySelectorAll('.tv-serial').forEach(i=>{if(i.value)arr.push(i.value)}); tvInfo = arr.join(" | "); }
+    let tvInfo = ""; 
+    if(tipoServicioActual === 'TV') { 
+        const arr=[]; document.querySelectorAll('.tv-serial').forEach(i=>{if(i.value)arr.push(i.value)}); 
+        tvInfo = arr.join(" | "); 
+    }
     
     const reg = {
         id_unico: Date.now(), fecha: new Date().toLocaleDateString(), hora: new Date().toLocaleTimeString(),
@@ -630,41 +698,35 @@ document.getElementById('btn_reset').addEventListener('click', async () => {
         tipo_servicio: tipoServicioActual || 'N/A', tv_data: tvInfo, 
         duracion: horaInicioLlamada ? Number(((Date.now()-horaInicioLlamada)/1000).toFixed(2)) : 0
     };
-    try { await baseDatos.guardar('historial', reg); await actualizarMetricas(); } catch(e) { alert("Error: "+e); }
     
-    horaInicioLlamada = null; 
-    timerRetoma = null;
-    retomaStartTime = null; 
+    try { 
+        await baseDatos.guardar('historial', reg); 
+        await actualizarMetricas(); 
+        showToast("Interacción registrada con éxito", "success"); // Mensaje elegante al guardar
+    } catch(e) { 
+        showToast("Error al guardar en base de datos", "error"); 
+    }
     
+    // Restablecer variables y limpiar inputs (tu código actual se mantiene igual aquí abajo)
+    horaInicioLlamada = null; timerRetoma = null; retomaStartTime = null; 
     document.querySelectorAll('input:not([type="radio"]):not([type="checkbox"])').forEach(i => i.value = '');
     els.obs.value = ''; els.obs.style.height = 'auto'; els.tvCont.innerHTML = '';
-    
     els.pNet.classList.remove('visible'); els.pTv.classList.remove('visible'); els.b2bPanel.classList.remove('visible');
+    
     if(els.macWrap) { els.macWrap.classList.add('hidden'); els.macInp.value = ''; resetMacStyle(); }
     if(els.portal) els.portal.checked = false; 
-    
     if(els.checkNotif){els.checkNotif.checked = false; els.toggleNotif.classList.remove('active');} 
     if(els.checkVenta){els.checkVenta.checked = false; els.toggleVenta.classList.remove('active');}
     if(els.soporteVel) els.soporteVel.value = 'Si'; 
+    
     const noRadio = document.querySelector('input[name="b2b_option"][value="no"]');
     if(noRadio) noRadio.click();
     
-    // --- Lógica del Cronómetro al Guardar ---
-    actualizarReloj(); // Esto fuerza que los tiempos se pongan en 00:00
-
-    if (pipWindow) {
-        // Si la ventana PiP externa está abierta, NO la cerramos. Se queda en 00:00.
-    } else {
-        // Si no está abierta la PiP, ocultamos el widget de la página principal.
-        if (els.timerWidget) els.timerWidget.classList.add('hidden');
-    }
+    actualizarReloj(); 
+    if (!pipWindow && els.timerWidget) els.timerWidget.classList.add('hidden');
     
     const inputGenesys = document.getElementById('genesys_raw_data');
-    if(inputGenesys) {
-        inputGenesys.focus();
-    } else {
-        els.id.focus();
-    }
+    if(inputGenesys) inputGenesys.focus(); else els.id.focus();
 });
 
 /* ==========================================================================
@@ -685,7 +747,7 @@ if(btnExtraer && inputGenesys) {
     btnExtraer.addEventListener('click', (e) => {
         e.preventDefault(); 
         const txt = inputGenesys.value;
-        if (!txt || txt.trim() === '') return alert("⚠️ Pega el texto primero.");
+        if (!txt || txt.trim() === '') { showToast("Pega el texto primero.", "warning"); return; }
 
         // 🛡️ MEMORIA: GUARDAMOS LA MAC ACTUAL ANTES DE ANALIZAR NADA
         const macActual = els.macInp.value;
