@@ -70,25 +70,35 @@
         </div>
     </div>
 
-    <div id="panel_internet" class="dynamic-panel">
-        <div class="row col-2" style="margin-top:10px;">
-            <div class="floating-group">
-                <input type="text" id="soporte_velocidad" list="yes_no_options" value="Si" placeholder=" " autocomplete="off">
-                <label>¿Equipo Soporta Velocidad?</label>
-                <datalist id="yes_no_options"><option value="Si"><option value="No"></datalist>
-            </div>
-            <div id="mac_wrapper" class="hidden" style="width: 100%;">
-                <div style="display: flex; gap: 8px;">
-                    <div class="floating-group" style="flex: 1; margin: 0;">
-                        <input type="text" id="mac_input" placeholder=" " autocomplete="off" style="text-transform:uppercase;">
-                        <label>MAC Módem (HFC)</label>
-                    </div>
-                    <!-- Nuevos botones de copiado rápido -->
-                    <button type="button" id="btn_mac_colon" class="btn-action-small" title="Copiar MAC con dos puntos">[:]</button>
-                    <button type="button" id="btn_mac_clean" class="btn-action-small" title="Copiar MAC Limpia">[  ]</button>
-                    <button type="button" id="btn_mac_6" class="btn-action-small" title="Copiar últimos 6 dígitos">6️⃣</button>
+<div id="panel_internet" class="dynamic-panel">
+        <div style="display: flex; gap: 15px; margin-top: 10px; align-items: flex-start;">
+            
+            <!-- Mitad izquierda: Velocidad -->
+            <div class="input-wrapper" style="flex: 1;">
+                <div class="floating-group">
+                    <input type="text" id="soporte_velocidad" list="yes_no_options" value="Si" placeholder=" " autocomplete="off">
+                    <label>¿Equipo Soporta Velocidad?</label>
+                    <datalist id="yes_no_options">
+                        <option value="Si">
+                        <option value="No">
+                    </datalist>
                 </div>
+                <button class="clear-btn" tabindex="-1">✕</button>
             </div>
+            
+            <!-- Mitad derecha: MAC y sus botones -->
+            <div id="mac_wrapper" class="hidden" style="flex: 1.5; display: flex; gap: 6px;">
+                <div class="floating-group" style="flex: 1; margin: 0;">
+                    <input type="text" id="mac_input" placeholder=" " autocomplete="off" style="text-transform:uppercase;">
+                    <label>MAC Módem (HFC/GPON)</label>
+                </div>
+                <!-- Botones de extracción -->
+                <button type="button" id="btn_mac_colon" class="btn-action-small" title="MAC con dos puntos">[:]</button>
+                <button type="button" id="btn_mac_clean" class="btn-action-small" title="MAC Limpia">[ ]</button>
+                <button type="button" id="btn_mac_c6" class="btn-action-small" title="CPE# + 6 dígitos">C6</button>
+                <button type="button" id="btn_mac_g6" class="btn-action-small" title="ONT# + 6 dígitos">G6</button>
+            </div>
+            
         </div>
     </div>
 
@@ -134,8 +144,9 @@
 
     <div class="actions">
         <button id="btn_copy">📋 Copiar Datos</button>
-        <button id="btn_reset">💾 Guardar / Reset</button>
-        <button id="btn_falla" style="background: #f59e0b; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 700; transition: 0.2s;">⚠️ Falla</button>
+        <button id="btn_reset">💾 Guardar</button>
+        <button id="btn_falla" class="btn-pro btn-pro-neutral">⚠️ Falla</button>
+        <button id="btn_celular" class="btn-pro btn-pro-neutral">📱 Celular</button>
     </div>
 
     <div class="row" style="display: flex; gap: 10px; align-items: center; margin: 15px 0;">

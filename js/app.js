@@ -202,7 +202,7 @@ function setupInput(inp) {
     inp.addEventListener('click', function() { if (typeof this.showPicker === 'function') { try { this.showPicker(); } catch(e){} } });
 }
 
-[els.tech, els.prod, els.fail, els.horario, els.b2bDays, els.b2bStart, els.b2bEnd].forEach(setupInput);
+[els.tech, els.prod, els.fail, els.horario, els.soporteVel, els.b2bDays, els.b2bStart, els.b2bEnd].forEach(setupInput);
 
 /* 5. CASCADA INTELIGENTE */
 function fillList(list, arr) { list.innerHTML = ''; arr.forEach(v => { const o = document.createElement('option'); o.value = v; list.appendChild(o); }); }
@@ -232,11 +232,8 @@ function togglePanels(prod) {
     if(els.pTv) els.pTv.classList.remove('visible'); 
     tipoServicioActual = null;
     
-    if(els.macWrap) {
-        els.macWrap.classList.add('hidden');
-        els.macInp.value = '';
-        resetMacStyle();
-    }
+    // OCULTA la MAC, pero NO LA BORRA DE LA MEMORIA
+    if(els.macWrap) els.macWrap.classList.add('hidden');
 
     setTimeout(() => {
         if (p.includes('internet')) { 
@@ -274,7 +271,7 @@ if(els.macInp) {
         // ⏳ VALIDACIÓN FLUIDA DE FONDO: Espera 400ms después de tu última tecla para actuar
         macDebounceTimer = setTimeout(() => {
             // Usa la lista pre-procesada para buscar en 0.001 segundos
-            const encontrada = macsPreprocesadas.some(dataStr => dataStr.includes(mac));
+            const encontrada = (macsPreprocesadas || []).some(dataStr => dataStr.includes(mac));
 
             if (encontrada) {
                 els.macWrap.classList.remove('input-success'); 
@@ -290,12 +287,25 @@ if(els.macInp) {
 }
 
 if(els.tvQty) els.tvQty.addEventListener('input', (e) => {
-    const n = parseInt(e.target.value) || 0; els.tvCont.innerHTML = '';
-    if(n > 0 && n <= 10) {
-        for(let i=1; i<=n; i++) {
-            const div = document.createElement('div'); div.className = 'floating-group'; div.style.marginBottom = '0';
-            div.innerHTML = `<input type="text" class="tv-serial" placeholder=" "><label>MAC/Serial ${i}</label>`;
+    const n = parseInt(e.target.value) || 0; 
+    if(n < 0 || n > 10) return;
+    
+    const countActual = els.tvCont.children.length;
+    
+    // Si el número es MAYOR, agregamos los campos que faltan
+    if (n > countActual) {
+        for(let i = countActual + 1; i <= n; i++) {
+            const div = document.createElement('div'); 
+            div.className = 'floating-group'; 
+            div.style.marginBottom = '0';
+            div.innerHTML = `<input type="text" class="tv-serial" placeholder=" " autocomplete="off"><label>MAC/Serial ${i}</label>`;
             els.tvCont.appendChild(div);
+        }
+    } 
+    // Si el número es MENOR, eliminamos los campos sobrantes del final
+    else if (n < countActual) {
+        for(let i = countActual; i > n; i--) {
+            els.tvCont.removeChild(els.tvCont.lastChild);
         }
     }
 });
@@ -699,6 +709,7 @@ document.getElementById('btn_copy').addEventListener('click', () => {
 
     navigator.clipboard.writeText(txt).then(() => { 
         const b = document.getElementById('btn_copy'); const prev = b.textContent; b.textContent = "¡Copiado!"; setTimeout(() => b.textContent = prev, 1000); 
+        showToast("📋 Observación copiada exitosamente", "success");
     });
 });
 

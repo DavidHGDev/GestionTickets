@@ -120,29 +120,73 @@ body {
 .toggle-btn.active { background: #ecfdf5; border-color: #10b981; color: #047857; }
 .toggle-btn input { display: none; }
 
-/* Modifica esta línea para que acepte 3 botones */
-.actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+/* --- BOTONES PRINCIPALES (DISEÑO PROFESIONAL TENUE) --- */
+.actions { 
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr); /* 4 columnas iguales */
+    gap: 12px; 
+    margin-bottom: 20px; 
+}
 
+.btn-pro {
+    padding: 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.btn-pro:active { transform: scale(0.98); }
+
+/* Azul suave y profesional para Copiar */
+.btn-pro-blue { 
+    background: #eff6ff; 
+    color: #2563eb; 
+    border-color: #bfdbfe; 
+}
+.btn-pro-blue:hover { background: #dbeafe; }
+
+/* Naranja pálido/suave para Falla */
+.btn-pro-warning { 
+    background: #fff7ed; 
+    color: #ea580c; 
+    border-color: #fed7aa; 
+}
+.btn-pro-warning:hover { background: #ffedd5; }
+
+/* Gris neutro para Guardar */
+.btn-pro-neutral { 
+    background: #f8fafc; 
+    color: #475569; 
+    border-color: #cbd5e1; 
+}
+.btn-pro-neutral:hover { background: #f1f5f9; }
+
+/* --- BOTONES PEQUEÑOS DE LA MAC --- */
 .btn-action-small {
     background: #f8fafc;
     border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    width: 48px;
+    border-radius: 6px;
+    width: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: #475569;
     transition: 0.2s;
     flex-shrink: 0;
 }
 .btn-action-small:hover {
-    background: #e2e8f0;
+    background: #eff6ff;
     border-color: var(--primary);
     color: var(--primary);
 }
+
+
 button#btn_copy { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 700; }
 button#btn_reset { background: white; border: 1px solid #cbd5e1; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 700; }
 
