@@ -26,6 +26,7 @@ let proximaAlarmaSegundos = 45;
 let tipoServicioActual = null;
 let misClaves = { elite: '', fenix: '', red: '', wts: '' };
 let listaValidacion = []; 
+let macsPreprocesadas = [];
 
 /* 3. REFERENCIAS DOM */
 const els = {
@@ -256,23 +257,35 @@ function resetMacStyle() {
 }
 
 if(els.macInp) {
+    let macDebounceTimer; // Variable para controlar el retraso
+    
     els.macInp.addEventListener('input', (e) => {
         const rawValue = e.target.value.toUpperCase();
         const mac = rawValue.replace(/[^A-Z0-9]/g, ''); 
-        if (mac.length < 4) { resetMacStyle(); return; }
         
-        const encontrada = listaValidacion.some(registro => {
-            const dataStr = JSON.stringify(registro).toUpperCase().replace(/[^A-Z0-9]/g, '');
-            return dataStr.includes(mac);
-        });
-
-        if (encontrada) {
-            els.macWrap.classList.remove('input-success'); els.macWrap.classList.add('input-danger'); 
-            if(els.portal) els.portal.checked = false; 
-        } else {
-            els.macWrap.classList.remove('input-danger'); els.macWrap.classList.add('input-success'); 
-            if(els.portal) els.portal.checked = true; 
+        // Limpiamos el contador si sigues escribiendo (Evita múltiples validaciones)
+        clearTimeout(macDebounceTimer);
+        
+        if (mac.length < 4) { 
+            resetMacStyle(); 
+            return; 
         }
+        
+        // ⏳ VALIDACIÓN FLUIDA DE FONDO: Espera 400ms después de tu última tecla para actuar
+        macDebounceTimer = setTimeout(() => {
+            // Usa la lista pre-procesada para buscar en 0.001 segundos
+            const encontrada = macsPreprocesadas.some(dataStr => dataStr.includes(mac));
+
+            if (encontrada) {
+                els.macWrap.classList.remove('input-success'); 
+                els.macWrap.classList.add('input-danger'); 
+                if(els.portal) els.portal.checked = false; 
+            } else {
+                els.macWrap.classList.remove('input-danger'); 
+                els.macWrap.classList.add('input-success'); 
+                if(els.portal) els.portal.checked = true; 
+            }
+        }, 400); 
     });
 }
 
@@ -947,6 +960,12 @@ async function cargarDatosValidacion() {
         if (conf && els.importDate) els.importDate.textContent = conf.valor;
         const datos = await baseDatos.leerTodo('validacion_mac');
         listaValidacion = datos; 
+        
+        // ⚡ OPTIMIZACIÓN: Traducimos los datos a texto simple una sola vez al cargar la página.
+        // Esto evita que la computadora sufra leyendo toda la base de datos con cada tecla.
+        macsPreprocesadas = listaValidacion.map(registro => 
+            JSON.stringify(registro).toUpperCase().replace(/[^A-Z0-9]/g, '')
+        );
     } catch(e) {}
 }
 

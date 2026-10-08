@@ -11,7 +11,7 @@
 <div class="card-container">
     
     <nav class="top-toolbar">
-        <a href="templates.html" class="tool-btn" target="_blank">📋 Plantillas</a>
+        <button class="tool-btn" id="btn_abrir_plantillas" title="Abrir Gestor de Plantillas">📋 Plantillas</button>
         <a href="data.html" class="tool-btn" target="_blank">📊 Historial</a>
         <button class="tool-btn" id="btn_export_excel" title="Exportar a Excel">📊 Excel</button>
         <button class="tool-btn" id="btn_clear_data" title="Borrar DB Local">🗑️ Borrar DB</button>
@@ -274,6 +274,45 @@
     </div>
 </div>
 
+<!-- MODAL INTEGRADO DE PLANTILLAS OPTIMIZADO -->
+<div id="modal_plantillas" class="modal-overlay hidden">
+    <div class="modal-content" style="width: 95%; max-width: 850px; height: 95vh; display: flex; flex-direction: column; padding: 20px;">
+        
+        <!-- HEADER COMPACTO CON MENÚ DESPLEGABLE -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                <span style="font-size: 1.6rem; color: var(--primary); cursor: pointer;" onclick="document.getElementById('select_plantilla').focus()">☰</span>
+                <!-- El select actúa ahora como el título principal -->
+                <select id="select_plantilla" style="width: 100%; max-width: 450px; font-size: 1.3rem; font-weight: bold; color: var(--primary); border: none; background: transparent; outline: none; cursor: pointer; appearance: auto;">
+                    <option value="">Seleccionar Plantilla...</option>
+                </select>
+            </div>
+            <button id="btn_cerrar_plantillas" class="btn-action" style="font-size: 1.5rem; cursor: pointer; border: none; background: none; color: #64748b; padding-left: 10px;">✕</button>
+        </div>
+
+        <!-- ESPACIO DE TRABAJO -->
+        <div id="plantilla_workspace" class="hidden" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+            <!-- El formulario ocupa todo el espacio sobrante con su propio scroll -->
+            <div id="plantilla_form" style="flex: 1; overflow-y: auto; padding-right: 10px; display: grid; gap: 12px; align-content: start;">
+                <!-- Los campos se inyectan aquí -->
+            </div>
+            
+            <!-- BOTONES SIEMPRE VISIBLES ABAJO -->
+            <div class="modal-actions" style="margin-top: 15px; flex-shrink: 0; display: flex; gap: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                <button id="btn_copiar_plantilla" class="btn-key" style="flex: 1; background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; font-size: 1.1rem; padding: 12px; font-weight: bold; transition: 0.2s; border-radius: 8px;">📋 Copiar</button>
+                <button id="btn_insertar_plantilla" class="btn-key" style="flex: 1; background: #dbeafe; border: 1px solid #93c5fd; color: #1e40af; font-size: 1.1rem; padding: 12px; font-weight: bold; transition: 0.2s; border-radius: 8px;">⬇️ Insertar y Salir</button>
+            </div>
+        </div>
+        
+        <!-- ESTADO VACÍO (Cuando no hay plantilla seleccionada) -->
+        <div id="plantilla_vacia" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8;">
+            <span style="font-size: 3rem; margin-bottom: 10px;">👆</span>
+            <p style="font-size: 1.1rem; font-weight: 600;">Selecciona una plantilla en el menú superior</p>
+        </div>
+        
+    </div>
+</div>
+
 <div id="modal_claves" class="modal-overlay hidden">
     <div class="modal-content">
         <h3 style="margin-bottom:15px; color:#1e3a8a;">Configurar Claves</h3>
@@ -318,5 +357,7 @@
 <script src="js/db.js"></script> 
 <script src="js/app.js"></script>
 <script src="js/exportarData.js"></script>
+<script src="js/logicaTemplate.js"></script>
+
 </body>
 </html>
