@@ -383,9 +383,26 @@ function csvAJson(csvText) {
 /* ==========================================================================
    7. B2B & CLAVES RÁPIDAS
    ========================================================================== */
-if(els.b2bRadios) els.b2bRadios.forEach(r => r.addEventListener('change', (e) => {
-    if(e.target.value === 'si') els.b2bPanel.classList.add('visible'); else els.b2bPanel.classList.remove('visible');
-}));
+if(els.b2bRadios) {
+    els.b2bRadios.forEach(r => r.addEventListener('change', (e) => {
+        if(e.target.value === 'si') {
+            els.b2bPanel.classList.add('visible');
+            
+            // HERENCIA: Pasa los datos solo si los campos del B2B están vacíos
+            if(!els.b2bContact.value) {
+                els.b2bContact.value = els.cliente.value.trim();
+                els.b2bContact.dispatchEvent(new Event('input')); // Activa la animación del label
+            }
+            if(!els.b2bPhone.value) {
+                els.b2bPhone.value = els.cel.value.trim();
+                els.b2bPhone.dispatchEvent(new Event('input'));
+            }
+            
+        } else {
+            els.b2bPanel.classList.remove('visible');
+        }
+    }));
+}
 
 if(els.b2bDays) els.b2bDays.addEventListener('change', (e) => {
     const val = e.target.value.toLowerCase();

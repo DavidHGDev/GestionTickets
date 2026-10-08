@@ -77,9 +77,17 @@
                 <label>¿Equipo Soporta Velocidad?</label>
                 <datalist id="yes_no_options"><option value="Si"><option value="No"></datalist>
             </div>
-            <div id="mac_wrapper" class="floating-group hidden">
-                <input type="text" id="mac_input" placeholder=" " autocomplete="off" style="text-transform:uppercase;">
-                <label>MAC Módem (HFC)</label>
+            <div id="mac_wrapper" class="hidden" style="width: 100%;">
+                <div style="display: flex; gap: 8px;">
+                    <div class="floating-group" style="flex: 1; margin: 0;">
+                        <input type="text" id="mac_input" placeholder=" " autocomplete="off" style="text-transform:uppercase;">
+                        <label>MAC Módem (HFC)</label>
+                    </div>
+                    <!-- Nuevos botones de copiado rápido -->
+                    <button type="button" id="btn_mac_colon" class="btn-action-small" title="Copiar MAC con dos puntos">[:]</button>
+                    <button type="button" id="btn_mac_clean" class="btn-action-small" title="Copiar MAC Limpia">[  ]</button>
+                    <button type="button" id="btn_mac_6" class="btn-action-small" title="Copiar últimos 6 dígitos">6️⃣</button>
+                </div>
             </div>
         </div>
     </div>
@@ -127,6 +135,7 @@
     <div class="actions">
         <button id="btn_copy">📋 Copiar Datos</button>
         <button id="btn_reset">💾 Guardar / Reset</button>
+        <button id="btn_falla" style="background: #f59e0b; color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: 700; transition: 0.2s;">⚠️ Falla</button>
     </div>
 
     <div class="row" style="display: flex; gap: 10px; align-items: center; margin: 15px 0;">
@@ -250,10 +259,10 @@
         </div>
         <div class="timer-content">
             <div class="time-info">
-                <div class="time-row">Total: <span id="display_total">00:00</span></div>
+                <div class="time-row"><button type="button" id="btn_reset_countdown" class="btn-reset-timer" title="Reiniciar Contador">🔄</button> <span id="display_total">00:00</span></div>
                 <div class="time-row">Aviso: <span id="display_countdown" class="countdown">00:00</span></div>
             </div>
-            <button type="button" id="btn_reset_countdown" class="btn-reset-timer" title="Reiniciar Contador">🔄</button>
+            
         </div>
     </div>
     
@@ -281,7 +290,7 @@
         <!-- HEADER COMPACTO CON MENÚ DESPLEGABLE -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0;">
             <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
-                <span style="font-size: 1.6rem; color: var(--primary); cursor: pointer;" onclick="document.getElementById('select_plantilla').focus()">☰</span>
+                <span style="font-size: 1.6rem; color: var(--primary); cursor: pointer;" onclick="const s = document.getElementById('select_plantilla'); try { s.showPicker(); } catch(e) { s.focus(); }">☰</span>
                 <!-- El select actúa ahora como el título principal -->
                 <select id="select_plantilla" style="width: 100%; max-width: 450px; font-size: 1.3rem; font-weight: bold; color: var(--primary); border: none; background: transparent; outline: none; cursor: pointer; appearance: auto;">
                     <option value="">Seleccionar Plantilla...</option>
@@ -358,6 +367,7 @@
 <script src="js/app.js"></script>
 <script src="js/exportarData.js"></script>
 <script src="js/logicaTemplate.js"></script>
+<script src="js/utilidades.js"></script>
 
 </body>
 </html>
