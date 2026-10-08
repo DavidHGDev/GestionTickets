@@ -13,6 +13,7 @@
     <nav class="top-toolbar">
         <a href="templates.html" class="tool-btn" target="_blank">📋 Plantillas</a>
         <a href="data.html" class="tool-btn" target="_blank">📊 Historial</a>
+        <button class="tool-btn" id="btn_export_excel" title="Exportar a Excel">📊 Excel</button>
         <button class="tool-btn" id="btn_clear_data" title="Borrar DB Local">🗑️ Borrar DB</button>
         <button class="tool-btn" id="btn_import_data">📥 Importar</button>
         <input type="file" id="file_selector" style="display: none;" accept=".json, .csv">
@@ -316,5 +317,6 @@
 
 <script src="js/db.js"></script> 
 <script src="js/app.js"></script>
+<script src="js/exportarData.js"></script>
 </body>
 </html>
