@@ -567,24 +567,43 @@ if(btnUndock) {
             if (pipWindow) return;
 
             try {
-                pipWindow = await window.documentPictureInPicture.requestWindow({ width: 180, height: 110 });
+                // Se amplía ligeramente la ventana para que el diseño completo encaje perfectamente
+                pipWindow = await window.documentPictureInPicture.requestWindow({ width: 190, height: 120 });
 
                 const style = pipWindow.document.createElement('style');
                 style.textContent = `
-                    body { background: #f8fafc; color: #334155; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; user-select: none; }
-                    .time-row { font-size: 0.85rem; margin-bottom: 8px; color: #64748b; display:flex; width: 130px; justify-content: space-between; align-items:center; }
-                    .time-row span { font-weight: bold; color: #0f172a; font-size: 1.15rem; font-family: monospace; }
+                    body { margin: 0; background: #f8fafc; font-family: 'Segoe UI', sans-serif; user-select: none; }
+                    .timer-widget { display: flex; flex-direction: column; height: 100vh; background: white; }
+                    .timer-header { background: #1e3a8a; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold; display: flex; justify-content: center; align-items: center; }
+                    .timer-content { padding: 12px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+                    .time-info { display: flex; flex-direction: column; gap: 8px; }
+                    .time-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #64748b; font-weight: 600; }
+                    #pop_total, #pop_count { font-weight: bold; color: #0f172a; font-size: 1.25rem; font-family: monospace; }
+                    .btn-reset-timer { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; padding: 4px 8px; font-size: 1rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; color: #334155; }
+                    .btn-reset-timer:hover { background: #e2e8f0; transform: scale(1.05); }
                     .danger { color: #ef4444 !important; animation: blink 1s infinite; }
                     @keyframes blink { 50% { opacity: 0.5; } }
-                    .btn { background: #3b82f6; color: white; border: none; border-radius: 50%; width: 34px; height: 34px; display:flex; align-items:center; justify-content:center; cursor: pointer; font-size: 1.1rem; margin-top: 5px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-                    .btn:hover { background: #2563eb; transform: rotate(180deg); }
                 `;
                 pipWindow.document.head.appendChild(style);
 
+                // Estructura HTML idéntica a tu widget original (sin el botón de undock, ya que ya está extraída)
                 pipWindow.document.body.innerHTML = `
-                    <div class="time-row">Total: <span id="pop_total">00:00</span></div>
-                    <div class="time-row">Aviso: <span id="pop_count">00:00</span></div>
-                    <button class="btn" id="pop_reset" title="Reiniciar Contador">🔄</button>
+                    <div class="timer-widget">
+                        <div class="timer-header">
+                            <span>⏱️ Cronómetro</span>
+                        </div>
+                        <div class="timer-content">
+                            <div class="time-info">
+                                <div class="time-row">
+                                    <button type="button" id="pop_reset" class="btn-reset-timer" title="Reiniciar Contador">🔄</button> 
+                                    <span id="pop_total">00:00</span>
+                                </div>
+                                <div class="time-row">
+                                    Aviso: <span id="pop_count" class="countdown">00:00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 `;
 
                 pipWindow.document.getElementById('pop_reset').addEventListener('click', () => {
@@ -608,6 +627,7 @@ if(btnUndock) {
         }
     });
 }
+
 
 window.reiniciarContadorDesdePopout = function() {
     retomaStartTime = Date.now();
