@@ -568,14 +568,14 @@ if(btnUndock) {
 
             try {
                 // Se amplía ligeramente la ventana para que el diseño completo encaje perfectamente
-                pipWindow = await window.documentPictureInPicture.requestWindow({ width: 190, height: 120 });
+                pipWindow = await window.documentPictureInPicture.requestWindow({ width: 120, height: 100 });
 
                 const style = pipWindow.document.createElement('style');
                 style.textContent = `
                     body { margin: 0; background: #f8fafc; font-family: 'Segoe UI', sans-serif; user-select: none; }
-                    .timer-widget { display: flex; flex-direction: column; height: 100vh; background: white; }
-                    .timer-header { background: #1e3a8a; color: white; padding: 6px 12px; font-size: 0.85rem; font-weight: bold; display: flex; justify-content: center; align-items: center; }
-                    .timer-content { padding: 12px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+                    .timer-widget { display: flex; flex-direction: column; align-items: flex-start; height: 100vh; background: white;  }
+                    .timer-header { color: white; padding: 0.5px 1px; font-size: 0.85rem; font-weight: bold; display: flex; justify-content: center; align-items: center; }
+                    .timer-content { padding: 1px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
                     .time-info { display: flex; flex-direction: column; gap: 8px; }
                     .time-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #64748b; font-weight: 600; }
                     #pop_total, #pop_count { font-weight: bold; color: #0f172a; font-size: 1.25rem; font-family: monospace; }
@@ -590,7 +590,6 @@ if(btnUndock) {
                 pipWindow.document.body.innerHTML = `
                     <div class="timer-widget">
                         <div class="timer-header">
-                            <span>⏱️ Cronómetro</span>
                         </div>
                         <div class="timer-content">
                             <div class="time-info">
